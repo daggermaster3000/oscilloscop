@@ -250,3 +250,133 @@ analyserLeft.fftSize = 2048;
 analyserRight.fftSize = 2048;
 stereoDataLeft = new Uint8Array(analyserLeft.frequencyBinCount);
 stereoDataRight = new Uint8Array(analyserRight.frequencyBinCount); 
+
+// Store previous waveforms to make a sheet
+const waveformHistory = [];
+const maxHistory = 80; // number of slices in the sheet
+
+function draw3DWaveformflat() {
+  analyser.getByteTimeDomainData(dataArray);
+
+  
+
+  // Save current waveform snapshot
+  const snapshot = Array.from(dataArray);
+  waveformHistory.unshift(snapshot);
+  if (waveformHistory.length > maxHistory) {
+    waveformHistory.pop();
+  }
+
+  applyAfterglowEffect();
+  drawGrid("3dsheet");
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  const perspective = 600;   // camera distance
+  const amplitude = canvas.height / 4; 
+  const sliceWidth = canvas.width / bufferLength;
+  const depthSpacing = 10;   // distance between sheets in Z
+
+  ctx.lineWidth = lineWidth;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+
+  // Loop through history and draw each waveform as a layer in Z
+  for (let h = 0; h < waveformHistory.length; h++) {
+    const waveform = waveformHistory[h];
+    const z3d = -h * depthSpacing;
+
+    ctx.beginPath();
+    ctx.strokeStyle = `hsla(${(h * 6) % 360}, 100%, 60%, 0.7)`; // rainbow fade by depth
+
+    for (let i = 0; i < bufferLength; i++) {
+      const v = (waveform[i] / 128.0) - 1.0;
+      const x3d = (i - bufferLength / 2) * sliceWidth * 0.6;
+      const y3d = v * amplitude * smoothingFactor;
+
+      // optional rotation around Y axis
+      const angle = performance.now() * 0.0003;
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const xRot = x3d * cosA - z3d * sinA;
+      const zRot = x3d * sinA + z3d * cosA;
+
+      // perspective projection
+      const scale = perspective / (perspective - zRot);
+      const x2d = xRot //* scale;
+      const y2d = y3d //* scale;
+
+      if (i === 0) ctx.moveTo(x2d, y2d);
+      else ctx.lineTo(x2d, y2d);
+    }
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  drawGrain();
+}
+
+
+function draw3DWaveformtop() {
+  analyser.getByteTimeDomainData(dataArray);
+
+  // Save current waveform snapshot
+  const snapshot = Array.from(dataArray);
+  waveformHistory.unshift(snapshot);
+  if (waveformHistory.length > maxHistory) {
+    waveformHistory.pop();
+  }
+
+  applyAfterglowEffect();
+  drawGrid("3dsheet");
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  const perspective = 600;   // camera distance
+  const amplitude = canvas.height / 4; 
+  const sliceWidth = canvas.width / bufferLength;
+  const depthSpacing = 10;   // distance between sheets in Z
+
+  ctx.lineWidth = lineWidth;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+
+  // Loop through history and draw each waveform as a layer in Z
+  for (let h = 0; h < waveformHistory.length; h++) {
+  const waveform = waveformHistory[h];
+  const z3d = -h * depthSpacing;
+
+  ctx.beginPath();
+  ctx.strokeStyle = `hsla(${(h * 6) % 360}, 100%, 60%, 0.7)`; // rainbow fade by depth
+
+  for (let i = 0; i < bufferLength; i++) {
+    const v = (waveform[i] / 128.0) - 1.0;
+    const x3d = (i - bufferLength / 2) * sliceWidth * 0.6;
+    const y3d = v * amplitude;
+
+    // --- tilt view around X-axis (top-down skew) ---
+    const tilt = -Math.PI / 3; // adjust: -90° is full top view, -60°/-45° looks nicer
+    const cosT = Math.cos(tilt);
+    const sinT = Math.sin(tilt);
+
+    const yTilt = y3d * cosT - z3d * sinT;
+    const zTilt = y3d * sinT + z3d * cosT;
+
+    // perspective projection
+    const scale = perspective / (perspective - zTilt);
+    const x2d = x3d * scale;
+    const y2d = yTilt * scale;
+
+    if (i === 0) ctx.moveTo(x2d, y2d);
+    else ctx.lineTo(x2d, y2d);
+  }
+
+  ctx.stroke();
+}
+
+
+  ctx.restore();
+  drawGrain();
+}

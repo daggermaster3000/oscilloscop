@@ -45,6 +45,12 @@ function animate() {
     case "stereo":
       drawStereoPhase();
       break;
+    case "3D Waveform flat":
+      draw3DWaveformflat();
+      break;
+    case "3D Waveform top":
+        draw3DWaveformtop();
+        break;
     default:
       drawWaveform();
   }

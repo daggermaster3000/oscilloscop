@@ -81,6 +81,8 @@
           <option value="waveform">Waveform</option>
           <option value="fft">FFT Spectrum</option>
           <option value="stereo">Stereo Phase</option>
+          <option value="3D Waveform flat">3D waveform flat</option>
+          <option value="3D Waveform top">3D waveform top</option>
         </select>
       </label>
 
@@ -99,23 +101,44 @@
 
   <div class="modal-backdrop" id="instructionsModal">
     <div class="modal">
-      <header>How to Use</header>
+      <header>How to Use ⚙️</header>
       <div class="content">
-        <p>• Choose an Input Source: Audio File or Microphone.</p>
-        <p>• For Microphone: your browser will ask for permission. Allow it.</p>
-        <p>• For Audio File: load a supported audio file and press Play.</p>
-        <p>• Display Modes:</p>
-        <p>- Waveform: time-domain signal with afterglow effect.</p>
-        <p>- FFT: frequency spectrum in real time.</p>
-        <p>- Stereo Phase: left vs right channel lissajous pattern.</p>
-        <p>• Adjust Afterglow and other parameters using the controls.</p>
-        <p>• Drag the controls window by its header; collapse it to free space.</p>
+        <ul>
+          <li>
+            <strong>Choose an Input Source:</strong>
+            <ul>
+              <li>Audio File</li>
+              <li>Microphone</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Microphone:</strong> your browser will ask for permission. Allow it. You may need to switch between devices to get it to work.
+          </li>
+          <li>
+            <strong>Audio File:</strong> load a supported audio file and press Play.
+          </li>
+          <li>
+            <strong>Display Modes:</strong>
+            <ul>
+              <li>Waveform: time-domain signal with afterglow effect.</li>
+              <li>FFT: frequency spectrum in real time.</li>
+              <li>Stereo Phase: left vs right channel Lissajous pattern.</li>
+            </ul>
+          </li>
+          <li>
+            Adjust Afterglow and other parameters using the controls.
+          </li>
+          <li>
+            Drag the controls window by its header; collapse it to free space.
+          </li>
+        </ul>
       </div>
       <footer>
         <button class="retro-btn" id="closeInstructions">Close</button>
       </footer>
     </div>
   </div>
+  
 
   <canvas id="oscilloscope"></canvas>
 
