@@ -354,7 +354,7 @@ function draw3DWaveformtop() {
   for (let i = 0; i < bufferLength; i++) {
     const v = (waveform[i] / 128.0) - 1.0;
     const x3d = (i - bufferLength / 2) * sliceWidth * 0.6;
-    const y3d = v * amplitude;
+    const y3d = v * amplitude * smoothingFactor;
 
     // --- tilt view around X-axis (top-down skew) ---
     const tilt = -Math.PI / 3; // adjust: -90° is full top view, -60°/-45° looks nicer
