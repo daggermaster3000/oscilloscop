@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Customizable Oscilloscope</title>
-  <link rel="stylesheet" href="../src/css/styles.css">
+  <link rel="stylesheet" href="css/styles.css">
   <style>
     /* Retro window header and buttons */
     #controls { user-select: none; }
@@ -11,7 +11,7 @@
     .window-header {
       display: flex; align-items: center; gap: 8px;
       background: rgba(0, 0, 0, 0.9);
-      border-bottom: 1px solid lime; padding: 6px 8px;
+      
       cursor: move;
     }
     .window-title { font-weight: bold; }
@@ -28,12 +28,13 @@
       display: none; align-items: center; justify-content: center; z-index: 9999;
     }
     .modal {
-      background: rgba(0,0,0,0.95); color: lime; border: 1px solid lime; width: 520px;
+      background: rgba(0,0,0,0.95); color: rgb(255, 255, 255); border: 1px solid rgb(255, 255, 255); width: 520px;
       max-width: calc(100% - 32px);
     }
-    .modal header { border-bottom: 1px solid lime; padding: 8px; font-weight: bold; }
+    .modal header { border-bottom: 1px solid rgb(255, 255, 255); padding: 8px; font-weight: bold; }
     .modal .content { padding: 12px; line-height: 1.4; }
-    .modal footer { padding: 8px; border-top: 1px solid lime; text-align: right; }
+    .modal footer { padding: 8px; border-top: 1px solid rgb(255, 255, 255); text-align: right; }
+    li { color: white;}
   </style>
 </head>
 <body>
@@ -102,7 +103,7 @@
   <div class="modal-backdrop" id="instructionsModal">
     <div class="modal">
       <header>How to Use ⚙️</header>
-      <div class="content">
+      <div class="content white-text">
         <ul>
           <li>
             <strong>Choose an Input Source:</strong>
@@ -123,6 +124,8 @@
               <li>Waveform: time-domain signal with afterglow effect.</li>
               <li>FFT: frequency spectrum in real time.</li>
               <li>Stereo Phase: left vs right channel Lissajous pattern.</li>
+              <li>3D Waveform flat: 3D waveform flat view animation. Tweak the smoothing.</li>
+              <li>3D Waveform top: 3D waveform top view.</li>
             </ul>
           </li>
           <li>
@@ -131,10 +134,13 @@
           <li>
             Drag the controls window by its header; collapse it to free space.
           </li>
+          <li>
+            More updates will follow...
+          </li>
         </ul>
       </div>
       <footer>
-        <button class="retro-btn" id="closeInstructions">Close</button>
+        <button class="retro-btn" style="color:white; border: 1px solid white;"id="closeInstructions">Close</button>
       </footer>
     </div>
   </div>
@@ -142,11 +148,11 @@
 
   <canvas id="oscilloscope"></canvas>
 
-  <script src="../src/js/themes.js"></script>
-  <script src="../src/js/knob.js"></script>
-  <script src="../src/js/audio.js"></script>
-  <script src="../src/js/visualizer.js"></script>
-  <script src="../src/js/main.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/knob.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/main.js"></script>
 
   <script>
     // Draggable controls

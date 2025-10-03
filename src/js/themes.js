@@ -16,6 +16,7 @@ function updateTheme(name) {
   theme = themes[name];
   document.getElementById("controls").style.borderColor = theme.border;
   document.getElementById("controls").style.color = theme.label;
+  
   document.querySelectorAll("#controls input, #controls select, #controls button").forEach(el => {
     el.style.borderColor = theme.border;
     el.style.color = theme.label;
