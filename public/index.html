@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customizable Oscilloscope</title>
+  <link rel="stylesheet" href="../src/css/styles.css">
+  <style>
+    /* Retro window header and buttons */
+    #controls { user-select: none; }
+    #controls.window-collapsed .window-body { display: none; }
+    .window-header {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0, 0, 0, 0.9);
+      border-bottom: 1px solid lime; padding: 6px 8px;
+      cursor: move;
+    }
+    .window-title { font-weight: bold; }
+    .window-spacer { flex: 1; }
+    .retro-btn {
+      background: black; color: lime; border: 1px solid lime; padding: 2px 8px;
+      cursor: pointer;
+    }
+    .retro-btn:active { background: #002000; }
+
+    /* Instructions modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal {
+      background: rgba(0,0,0,0.95); color: lime; border: 1px solid lime; width: 520px;
+      max-width: calc(100% - 32px);
+    }
+    .modal header { border-bottom: 1px solid lime; padding: 8px; font-weight: bold; }
+    .modal .content { padding: 12px; line-height: 1.4; }
+    .modal footer { padding: 8px; border-top: 1px solid lime; text-align: right; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div class="window-header" id="controlsHeader">
+      <span class="window-title">Oscilloscope Controls</span>
+      <div class="window-spacer"></div>
+      <button class="retro-btn" id="instructionsBtn">Instructions</button>
+      <button class="retro-btn" id="collapseBtn">Collapse</button>
+    </div>
+    <div class="window-body">
+      <label>
+        Input Source:
+        <select id="inputSource">
+          <option value="file">Audio File</option>
+          <option value="mic">Microphone / Audio Interface</option>
+        </select>
+      </label>
+
+      <label id="deviceLabel" style="display: none;">
+        Audio Device:
+        <select id="audioDevices"></select>
+      </label>
+
+      <label id="fileLabel">
+        Upload Audio:
+        <input type="file" id="audioFile" accept="audio/*">
+      </label>
+      <button id="playPauseBtn" disabled>Play</button>
+
+      <label>
+        Theme:
+        <select id="themeSelect">
+          <option value="green">Retro Green</option>
+          <option value="blue">Sci-fi Blue</option>
+          <option value="amber">Amber Orange</option>
+          <option value="red">Night Vision Red</option>
+          <option value="cartoon">Cartoon Split</option>
+        </select>
+      </label>
+
+      <label>
+        Display Mode:
+        <select id="displayMode">
+          <option value="waveform">Waveform</option>
+          <option value="fft">FFT Spectrum</option>
+          <option value="stereo">Stereo Phase</option>
+        </select>
+      </label>
+
+      <label>
+        Afterglow:
+        <input type="range" id="afterglowControl" min="0" max="100" value="92">
+        <span id="afterglowValue">0.92</span>
+      </label>
+
+      <div class="control-section">
+        <h3>Adjustments</h3>
+        <div id="knobControls"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="instructionsModal">
+    <div class="modal">
+      <header>How to Use</header>
+      <div class="content">
+        <p>• Choose an Input Source: Audio File or Microphone.</p>
+        <p>• For Microphone: your browser will ask for permission. Allow it.</p>
+        <p>• For Audio File: load a supported audio file and press Play.</p>
+        <p>• Display Modes:</p>
+        <p>- Waveform: time-domain signal with afterglow effect.</p>
+        <p>- FFT: frequency spectrum in real time.</p>
+        <p>- Stereo Phase: left vs right channel lissajous pattern.</p>
+        <p>• Adjust Afterglow and other parameters using the controls.</p>
+        <p>• Drag the controls window by its header; collapse it to free space.</p>
+      </div>
+      <footer>
+        <button class="retro-btn" id="closeInstructions">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <canvas id="oscilloscope"></canvas>
+
+  <script src="../src/js/themes.js"></script>
+  <script src="../src/js/knob.js"></script>
+  <script src="../src/js/audio.js"></script>
+  <script src="../src/js/visualizer.js"></script>
+  <script src="../src/js/main.js"></script>
+
+  <script>
+    // Draggable controls
+    (function(){
+      const controls = document.getElementById('controls');
+      const header = document.getElementById('controlsHeader');
+      let pos = {x:0,y:0}, dragging=false, origin={x:0,y:0};
+      header.addEventListener('mousedown', (e)=>{
+        dragging = true; origin.x = e.clientX; origin.y = e.clientY;
+        const rect = controls.getBoundingClientRect(); pos.x = rect.left; pos.y = rect.top;
+        document.body.style.cursor = 'move';
+      });
+      window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.cursor='default'; });
+      window.addEventListener('mousemove', (e)=>{
+        if(!dragging) return;
+        const dx = e.clientX - origin.x; const dy = e.clientY - origin.y;
+        controls.style.left = (pos.x + dx) + 'px';
+        controls.style.top = (pos.y + dy) + 'px';
+      });
+      // Collapse toggle
+      const collapseBtn = document.getElementById('collapseBtn');
+      collapseBtn.addEventListener('click', ()=>{
+        controls.classList.toggle('window-collapsed');
+        collapseBtn.textContent = controls.classList.contains('window-collapsed') ? 'Expand' : 'Collapse';
+      });
+      // Instructions modal
+      const modal = document.getElementById('instructionsModal');
+      document.getElementById('instructionsBtn').addEventListener('click', ()=>{ modal.style.display = 'flex'; });
+      document.getElementById('closeInstructions').addEventListener('click', ()=>{ modal.style.display = 'none'; });
+      modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.style.display='none'; });
+    })();
+  </script>
+</body>
+</html> 
