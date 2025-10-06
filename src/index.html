@@ -282,36 +282,28 @@
       <div class="content white-text">
         <ul>
           <li>
-            <strong>Choose an Input Source:</strong>
-            <ul>
-              <li>Audio File</li>
-              <li>Microphone</li>
-            </ul>
-          </li>
-          <li>
-            <strong>Microphone:</strong> your browser will ask for permission. Allow it. You may need to switch between devices to get it to work.
-          </li>
-          <li>
-            <strong>Audio File:</strong> load a supported audio file and press Play.
+            <strong>Input Source:</strong> Use Audio File or Microphone (allow permission if prompted). Switch devices if no signal.
           </li>
           <li>
             <strong>Display Modes:</strong>
             <ul>
-              <li>Waveform: time-domain signal with afterglow effect.</li>
-              <li>FFT: frequency spectrum in real time.</li>
-              <li>Stereo Phase: left vs right channel Lissajous pattern.</li>
-              <li>3D Waveform flat: 3D waveform flat view animation. Tweak the smoothing.</li>
-              <li>3D Waveform top: 3D waveform top view.</li>
+              <li>Waveform / FFT / Stereo Phase: classic oscilloscope views with Afterglow, Smoothing, and Line Width controls.</li>
+              <li>3D Waveform (flat/top) and 3D/2D Spectrogram: time/frequency landscapes with perspective and grid.</li>
+              <li>Particle Cloud: parametric 3D shapes driven by audio. Edit equations x(u,v,t,a), y(u,v,t,a), z(u,v,t,a), choose presets, and control per‑axis rotation and speed.</li>
+              <li>Fourier Series Shape: audio builds a radial shape from harmonics. Set Harmonics and Contribution. (still work in progress)</li>
+              <li>Polygon Morph: audio morphs sides, rotation, and radius for geometric shapes.</li>
+              <li>Harmonic Orbital Systems: audio‑scaled planets orbit with optional 3D tilt, depth, spin; toggle orbit paths, set planet size.</li>
+              <li>Game of Life: audio injects life/noise and biases rules. Tune Cell Size, Reseed, Birth/Survival thresholds.</li>
             </ul>
           </li>
           <li>
-            Adjust Afterglow and other parameters using the controls.
+            <strong>Theme & UI:</strong> pick a theme; controls are scrollable. Knobs update styling with theme changes.
           </li>
           <li>
-            Drag the controls window by its header; collapse it to free space.
+            <strong>Copy/Share:</strong> use “Copy Settings URL” to share the exact configuration. Loading a URL restores all controls (display mode, particle equations/rotation, Fourier/orbitals/GoL settings, etc...).
           </li>
           <li>
-            More updates will follow...
+            <strong>Tips:</strong> increase Particle Count or decrease GoL Cell Size for denser visuals; switch Audio Response between FFT and Signal for different motion; Adjust survival boost for GoL to respond to different audio dynamics
           </li>
         </ul>
       </div>
