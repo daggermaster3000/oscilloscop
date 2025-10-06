@@ -16,8 +16,10 @@ canvas {
   z-index: 10;
   background: rgba(0, 0, 0, 0.8);
   padding: 10px;
-  border: 1px solid lime;
-  color: lime;
+  border: 1px solid var(--ui-border, lime);
+  color: var(--ui-label, lime);
+  max-height: 90vh;
+  overflow: hidden;
 }
 
 #controls label,
@@ -31,9 +33,46 @@ canvas {
 #controls select,
 #controls button {
   background: black;
-  border: 1px solid lime;
-  color: lime;
+  border: 1px solid var(--ui-border, lime);
+  color: var(--ui-label, lime);
   padding: 4px;
+}
+
+/* Themed sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type="range"]:focus {
+  outline: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: color-mix(in srgb, var(--ui-glow, #00FF99) 25%, transparent);
+  border: 1px solid var(--ui-border, lime);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  background: black;
+  border: 1px solid var(--ui-border, lime);
+  box-shadow: 0 0 6px var(--ui-glow, #00FF99);
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: color-mix(in srgb, var(--ui_glow_fallback, #00FF99) 25%, transparent);
+  border: 1px solid var(--ui-border, lime);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: black;
+  border: 1px solid var(--ui-border, lime);
+  box-shadow: 0 0 6px var(--ui-glow, #00FF99);
 }
 
 #afterglowControl {
@@ -52,6 +91,11 @@ canvas {
   margin-top: 20px;
   padding-top: 15px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#controls .window-body {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .control-section h3 {

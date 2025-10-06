@@ -99,6 +99,9 @@
           <option value="3D Spectrogram">3D spectrogram</option>
           <option value="2D Spectrogram">2D spectrogram</option>
           <option value="Particle Cloud">Particle Cloud</option>
+          <option value="Fourier Series Shape">Fourier Series Shape</option>
+          <option value="Polygon Morph">Polygon Morph</option>
+          <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
         </select>
       </label>
 
@@ -111,6 +114,139 @@
       <div class="control-section">
         <h3>Adjustments</h3>
         <div id="knobControls"></div>
+      </div>
+
+      <div class="control-section" id="particleControls">
+        <h3>Particle Cloud</h3>
+        <label>
+          Audio Response:
+          <select id="particleResponse">
+            <option value="fft">Frequency (FFT)</option>
+            <option value="signal">Signal (Time-domain)</option>
+          </select>
+        </label>
+        <label>
+          Particle Count:
+          <input type="number" id="particleCount" min="100" max="20000" step="100" value="2000">
+        </label>
+        <label>
+          Particle Size:
+          <input type="range" id="particleSize" min="1" max="8" step="0.5" value="2">
+          <span id="particleSizeValue">2</span>
+        </label>
+
+        <details id="equationDetails">
+          <summary>Equations (x(u,v,t,a), y(u,v,t,a), z(u,v,t,a))</summary>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>
+              Preset Shape:
+              <select id="equationPreset">
+                <option value="sphere">Sphere</option>
+                <option value="torus">Torus</option>
+                <option value="helix">Helix</option>
+                <option value="lissajous">Lissajous Knot</option>
+                <option value="torusKnot">Torus Knot (p=2,q=3)</option>
+                <option value="mobius">Möbius Strip</option>
+                <option value="highway">Highway</option>
+              </select>
+              <button class="retro-btn" id="equationResetBtn">Reset</button>
+            </label>
+            <small>u ∈ [0,1], v ∈ [0,1], t = seconds, a = avg amplitude [0,1]</small>
+            <label>
+              x(u,v,t,a):
+              <input type="text" id="eqX" value="Math.sin(Math.PI*v)*Math.cos(2*Math.PI*u)">
+            </label>
+            <label>
+              y(u,v,t,a):
+              <input type="text" id="eqY" value="Math.sin(Math.PI*v)*Math.sin(2*Math.PI*u)">
+            </label>
+            <label>
+              z(u,v,t,a):
+              <input type="text" id="eqZ" value="Math.cos(Math.PI*v)">
+            </label>
+          </div>
+        </details>
+
+        <details id="rotationDetails">
+          <summary>Rotation</summary>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>
+              Rotation Preset:
+              <select id="rotatePreset">
+                <option value="none">None</option>
+                <option value="spinY">Spin Y</option>
+                <option value="spinX">Spin X</option>
+                <option value="spinZ">Spin Z</option>
+                <option value="tumble">Tumble XYZ</option>
+                <option value="orbitXY">Orbit XY</option>
+              </select>
+            </label>
+            <label>
+              <input type="checkbox" id="rotateX" checked>
+              Rotate X
+              <input type="range" id="rotateXSpeed" min="-2" max="2" step="0.01" value="0.30">
+              <span id="rotateXSpeedValue">0.30</span> rad/s
+            </label>
+            <label>
+              <input type="checkbox" id="rotateY" checked>
+              Rotate Y
+              <input type="range" id="rotateYSpeed" min="-2" max="2" step="0.01" value="0.60">
+              <span id="rotateYSpeedValue">0.60</span> rad/s
+            </label>
+            <label>
+              <input type="checkbox" id="rotateZ">
+              Rotate Z
+              <input type="range" id="rotateZSpeed" min="-2" max="2" step="0.01" value="0.20">
+              <span id="rotateZSpeedValue">0.20</span> rad/s
+            </label>
+          </div>
+        </details>
+      </div>
+
+      <div class="control-section" id="fourierControls">
+        <h3>Fourier Series</h3>
+        <label>
+          Harmonics:
+          <input type="range" id="fourierHarmonics" min="1" max="64" step="1" value="16">
+          <span id="fourierHarmonicsValue">16</span>
+        </label>
+        <label>
+          Contribution:
+          <input type="range" id="fourierContribution" min="0" max="1" step="0.01" value="0.20">
+          <span id="fourierContributionValue">0.20</span>
+        </label>
+      </div>
+
+      <div class="control-section" id="orbitalsControls">
+        <h3>Harmonic Orbitals</h3>
+        <label>
+          <input type="checkbox" id="orbitalsShowPaths" checked>
+          Show Orbit Paths
+        </label>
+        <label>
+          Planet Size:
+          <input type="range" id="orbitalsPlanetSize" min="1" max="10" step="0.5" value="3">
+          <span id="orbitalsPlanetSizeValue">3.0</span>
+        </label>
+        <label>
+          <input type="checkbox" id="orbitals3D" checked>
+          3D Mode
+        </label>
+        <label>
+          Tilt (deg):
+          <input type="range" id="orbitalsTilt" min="-90" max="90" step="1" value="-30">
+          <span id="orbitalsTiltValue">-30</span>
+        </label>
+        <label>
+          Depth:
+          <input type="range" id="orbitalsDepth" min="200" max="1200" step="10" value="700">
+          <span id="orbitalsDepthValue">700</span>
+        </label>
+        <label>
+          Spin Speed (rad/s):
+          <input type="range" id="orbitalsSpin" min="0" max="2" step="0.01" value="0.4">
+          <span id="orbitalsSpinValue">0.40</span>
+        </label>
       </div>
     </div>
   </div>
@@ -204,7 +340,7 @@
     const afterglowControl = document.getElementById("afterglowControl");
     const afterglowValue = document.getElementById("afterglowValue");
 
-    if (!themeSelect || !displayMode || !afterglowControl || !afterglowValue) return;
+    if (!themeSelect || !displayMode) return;
 
     // Load settings from URL
     const params = new URLSearchParams(window.location.search);
@@ -215,34 +351,114 @@
       afterglowValue.textContent = params.get("afterglow");
     }
 
-    function updateURL() {
-      const settings = {
-        theme: themeSelect.value,
-        displayMode: displayMode.value,
-        afterglow: (afterglowControl.value/100).toFixed(2)
-      };
+        function updateURL() {
+          const settings = {
+            theme: themeSelect.value,
+            displayMode: displayMode.value,
+            afterglow: (afterglowControl.value/100).toFixed(2),
+            // particle
+            pResp: (document.getElementById('particleResponse')||{}).value,
+            pCount: (document.getElementById('particleCount')||{}).value,
+            pSize: (document.getElementById('particleSize')||{}).value,
+            eqPreset: (document.getElementById('equationPreset')||{}).value,
+            eqX: (document.getElementById('eqX')||{}).value,
+            eqY: (document.getElementById('eqY')||{}).value,
+            eqZ: (document.getElementById('eqZ')||{}).value,
+            rotPreset: (document.getElementById('rotatePreset')||{}).value,
+            rotX: (document.getElementById('rotateX')||{}).checked,
+            rotY: (document.getElementById('rotateY')||{}).checked,
+            rotZ: (document.getElementById('rotateZ')||{}).checked,
+            rotXS: (document.getElementById('rotateXSpeed')||{}).value,
+            rotYS: (document.getElementById('rotateYSpeed')||{}).value,
+            rotZS: (document.getElementById('rotateZSpeed')||{}).value,
+            // fourier
+            fH: (document.getElementById('fourierHarmonics')||{}).value,
+            fC: (document.getElementById('fourierContribution')||{}).value,
+            // orbitals
+            oPaths: (document.getElementById('orbitalsShowPaths')||{}).checked,
+            oSize: (document.getElementById('orbitalsPlanetSize')||{}).value,
+            o3D: (document.getElementById('orbitals3D')||{}).checked,
+            oTilt: (document.getElementById('orbitalsTilt')||{}).value,
+            oDepth: (document.getElementById('orbitalsDepth')||{}).value,
+            oSpin: (document.getElementById('orbitalsSpin')||{}).value
+          };
       const newParams = new URLSearchParams(settings);
       const newURL = `${window.location.origin}${window.location.pathname}?${newParams}`;
       window.history.replaceState({}, "", newURL);
     }
 
-    themeSelect.addEventListener("change", updateURL);
-    displayMode.addEventListener("change", updateURL);
-    afterglowControl.addEventListener("input", () => {
+        themeSelect.addEventListener("change", updateURL);
+        displayMode.addEventListener("change", updateURL);
+        afterglowControl.addEventListener("input", () => {
       afterglowValue.textContent = (afterglowControl.value/100).toFixed(2);
       updateURL();
     });
 
-    // Copy settings button
-    const copyBtn = document.createElement("button");
-    copyBtn.textContent = "Copy Settings URL";
-    copyBtn.className = "retro-btn";
-    themeSelect.parentElement.after(copyBtn);
-    copyBtn.addEventListener("click", () => {
-      navigator.clipboard.writeText(window.location.href);
-      copyBtn.textContent = "Copied!";
-      setTimeout(() => copyBtn.textContent = "Copy Settings URL", 1500);
-    });
+        // wire extra controls to URL sync
+        [
+          'particleResponse','particleCount','particleSize','equationPreset','eqX','eqY','eqZ',
+          'rotatePreset','rotateX','rotateY','rotateZ','rotateXSpeed','rotateYSpeed','rotateZSpeed',
+          'fourierHarmonics','fourierContribution',
+          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin'
+        ].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const evt = (el.tagName === 'INPUT' && el.type === 'range') ? 'input' : 'change';
+          el.addEventListener(evt, updateURL);
+        });
+
+        // Copy settings button
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "Copy Settings URL";
+        copyBtn.className = "retro-btn";
+        themeSelect.parentElement.after(copyBtn);
+        copyBtn.addEventListener("click", () => {
+          updateURL();
+          navigator.clipboard.writeText(window.location.href);
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => copyBtn.textContent = "Copy Settings URL", 1500);
+        });
+
+        // Load settings from URL (extras)
+        const trigger = (id, type) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.dispatchEvent(new Event(type || 'change', { bubbles: true }));
+        };
+        if (params.has('pResp')) (document.getElementById('particleResponse')||{}).value = params.get('pResp');
+        if (params.has('pCount')) (document.getElementById('particleCount')||{}).value = params.get('pCount');
+        if (params.has('pSize')) (document.getElementById('particleSize')||{}).value = params.get('pSize');
+        if (params.has('eqPreset')) (document.getElementById('equationPreset')||{}).value = params.get('eqPreset');
+        if (params.has('eqX')) (document.getElementById('eqX')||{}).value = params.get('eqX');
+        if (params.has('eqY')) (document.getElementById('eqY')||{}).value = params.get('eqY');
+        if (params.has('eqZ')) (document.getElementById('eqZ')||{}).value = params.get('eqZ');
+        if (params.has('rotPreset')) (document.getElementById('rotatePreset')||{}).value = params.get('rotPreset');
+        if (params.has('rotX')) (document.getElementById('rotateX')||{}).checked = params.get('rotX') === 'true';
+        if (params.has('rotY')) (document.getElementById('rotateY')||{}).checked = params.get('rotY') === 'true';
+        if (params.has('rotZ')) (document.getElementById('rotateZ')||{}).checked = params.get('rotZ') === 'true';
+        if (params.has('rotXS')) (document.getElementById('rotateXSpeed')||{}).value = params.get('rotXS');
+        if (params.has('rotYS')) (document.getElementById('rotateYSpeed')||{}).value = params.get('rotYS');
+        if (params.has('rotZS')) (document.getElementById('rotateZSpeed')||{}).value = params.get('rotZS');
+        if (params.has('fH')) (document.getElementById('fourierHarmonics')||{}).value = params.get('fH');
+        if (params.has('fC')) (document.getElementById('fourierContribution')||{}).value = params.get('fC');
+        if (params.has('oPaths')) (document.getElementById('orbitalsShowPaths')||{}).checked = params.get('oPaths') === 'true';
+        if (params.has('oSize')) (document.getElementById('orbitalsPlanetSize')||{}).value = params.get('oSize');
+        if (params.has('o3D')) (document.getElementById('orbitals3D')||{}).checked = params.get('o3D') === 'true';
+        if (params.has('oTilt')) (document.getElementById('orbitalsTilt')||{}).value = params.get('oTilt');
+        if (params.has('oDepth')) (document.getElementById('orbitalsDepth')||{}).value = params.get('oDepth');
+        if (params.has('oSpin')) (document.getElementById('orbitalsSpin')||{}).value = params.get('oSpin');
+
+        // Trigger listeners to ensure state sync
+        ['themeSelect','displayMode','afterglowControl','particleResponse','particleCount','particleSize',
+         'equationPreset','eqX','eqY','eqZ','rotatePreset','rotateX','rotateY','rotateZ',
+         'rotateXSpeed','rotateYSpeed','rotateZSpeed','fourierHarmonics','fourierContribution',
+         'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin']
+          .forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const type = (el.tagName === 'INPUT' && el.type === 'range') ? 'input' : 'change';
+            el.dispatchEvent(new Event(type, { bubbles: true }));
+          });
 
   });
   </script>

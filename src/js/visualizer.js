@@ -7,10 +7,7 @@ let afterglowOpacity = 0.92;
 let lineWidth = 2;
 let smoothingFactor = 0.2;
 
-// Remove the old afterglow control elements
-const oldAfterglowControl = document.getElementById("afterglowControl");
-const oldAfterglowValue = document.getElementById("afterglowValue");
-if (oldAfterglowControl) oldAfterglowControl.parentElement.remove();
+// Keep existing afterglow controls intact for settings URL and UI
 
 // Create knob controls
 const knobContainer = document.getElementById("knobControls");
@@ -472,17 +469,35 @@ function amplitudeToColor(a) {
 }
 
 function drawParticleCloud() {
-  analyser.getByteFrequencyData(dataArray);
-
-  let sum = 0;
-  let maxAmp = 0;
-  for (let i = 0; i < bufferLength; i++) {
+  // Build amplitude array in [0,1] using either FFT or signal
+  const responseMode = window.particleResponseMode || 'fft';
+  const amplitudeArray = new Float32Array(bufferLength);
+  if (responseMode === 'signal') {
+    analyser.getByteTimeDomainData(dataArray);
+    let sum = 0;
+    let maxAmp = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const centered = Math.abs(dataArray[i] - 128) / 128; // 0..1
+      amplitudeArray[i] = centered;
+      sum += centered;
+      if (centered > maxAmp) maxAmp = centered;
+    }
+    var avgAmp = sum / bufferLength;
+    var normMax = maxAmp;
+  } else {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    let maxAmp = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 255;
+      amplitudeArray[i] = v;
       sum += dataArray[i];
       if (dataArray[i] > maxAmp) maxAmp = dataArray[i];
+    }
+    var avgAmp = sum / bufferLength / 255;
+    var normMax = maxAmp / 255;
   }
-  const avgAmp = sum / bufferLength;
-  const normAmp = avgAmp / 255;
-  const normMax = maxAmp / 255;
+  const normAmp = avgAmp;
   const beatThreshold = 0.9;
   const isBeat = normMax > beatThreshold;
 
@@ -495,31 +510,42 @@ function drawParticleCloud() {
   const perspective = 500;
   const radius = 200;
 
-  // Rotation around Y-axis
-  const yAngle = performance.now() * 0.001; // rotate over time
+  // Rotation angles
+  const rot = window.particleRotation || { enableX:true, enableY:true, enableZ:false, speedX:0.3, speedY:0.6, speedZ:0.2 };
+  const now = performance.now() / 1000;
+  const xAngle = rot.enableX ? now * rot.speedX : 0;
+  const yAngle = rot.enableY ? now * rot.speedY : 0;
+  const zAngle = rot.enableZ ? now * rot.speedZ : 0;
   const inertia = 1;
+  const t = performance.now() / 1000;
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
-    
-    const freqIndex = Math.floor((i / particles.length) * bufferLength);
-    const amplitude = dataArray[freqIndex] / 255 + Math.random()/10;
-    const beatFactor = isBeat ? 1 : 1;
-    const r = radius + amplitude * 100 * beatFactor;
+    // map particle to amplitude bin uniformly
+    const ampIndex = Math.floor((i / particles.length) * bufferLength);
+    const amp = amplitudeArray[ampIndex];
+    const a = normAmp; // average amplitude
 
-   // Compute target 3D position (spherical or original coordinates)
-    const targetX = p.x ;
-    const targetY = p.y ;
-    const targetZ = p.z ;
+    // evaluate parametric equations
+    const xEq = eqXFunc ? eqXFunc(p.u, p.v, t, a) : p.x;
+    const yEq = eqYFunc ? eqYFunc(p.u, p.v, t, a) : p.y;
+    const zEq = eqZFunc ? eqZFunc(p.u, p.v, t, a) : p.z;
 
-     // Apply inertia/smoothing
-    p.x = p.x + (targetX - p.x) * inertia;
-    p.y = p.y + (targetY - p.y) * inertia;
-    p.z = p.z + (targetZ - p.z) * inertia;
+    // radius modulation by instantaneous bin amplitude
+    const r = radius * (1 + 0.5 * amp);
 
-    // Rotate around Y-axis
-    const xRot = p.x * Math.cos(yAngle) + p.z * Math.sin(yAngle);
-    const zRot = -p.x * Math.sin(yAngle) + p.z * Math.cos(yAngle);
-    const yRot = p.y ;
+    // rotate around X, then Y, then Z
+    // X rotation
+    let xR = xEq;
+    let yR = yEq * Math.cos(xAngle) - zEq * Math.sin(xAngle);
+    let zR = yEq * Math.sin(xAngle) + zEq * Math.cos(xAngle);
+    // Y rotation
+    const xR2 = xR * Math.cos(yAngle) + zR * Math.sin(yAngle);
+    const zR2 = -xR * Math.sin(yAngle) + zR * Math.cos(yAngle);
+    const yR2 = yR;
+    // Z rotation
+    const xRot = xR2 * Math.cos(zAngle) - yR2 * Math.sin(zAngle);
+    const yRot = xR2 * Math.sin(zAngle) + yR2 * Math.cos(zAngle);
+    const zRot = zR2;
 
     const scale = perspective / (perspective + zRot * r);
     const size = p.size;
@@ -528,10 +554,185 @@ function drawParticleCloud() {
     ctx.beginPath();
     ctx.arc(xRot * r * scale, yRot * r * scale, size, 0, Math.PI * 2);
     ctx.fill();
-    
   }
 
   ctx.restore();
   drawGrid("2dsheet");
+  drawGrain();
+}
+
+// --- New Modes ---
+function drawFourierSeriesShape() {
+  analyser.getByteTimeDomainData(dataArray);
+
+  applyAfterglowEffect();
+  drawGrid("fourier");
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) * 0.25;
+
+  // Build Fourier-like series coefficients from audio
+  const settings = window.fourierSettings || { harmonics: 16, contribution: 0.2 };
+  const HARMONICS = Math.max(1, Math.min(128, settings.harmonics | 0));
+  const CONTRIB = Math.max(0, Math.min(1, settings.contribution));
+  const coeffs = new Array(HARMONICS).fill(0);
+  for (let k = 1; k <= HARMONICS; k++) {
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const tt = i / bufferLength;
+      const v = (dataArray[i] - 128) / 128;
+      sum += v * Math.sin(2 * Math.PI * k * tt);
+    }
+    coeffs[k - 1] = sum / bufferLength;
+  }
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.beginPath();
+  for (let i = 0; i <= 360; i++) {
+    const t = i / 360;
+    let r = radius;
+    for (let k = 1; k <= HARMONICS; k++) {
+      r += coeffs[k - 1] * (radius * CONTRIB) / k;
+    }
+    const angle = 2 * Math.PI * t;
+    const x = r * Math.cos(angle);
+    const y = r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = theme.glow;
+  ctx.lineWidth = lineWidth;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+  ctx.stroke();
+  ctx.restore();
+  drawGrain();
+}
+
+function drawPolygonMorph() {
+  analyser.getByteTimeDomainData(dataArray);
+  applyAfterglowEffect();
+  drawGrid("poly");
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const cx = width / 2;
+  const cy = height / 2;
+  const baseR = Math.min(width, height) * 0.3;
+
+  // Number of sides morphs with average amplitude
+  let sum = 0;
+  for (let i = 0; i < bufferLength; i++) sum += Math.abs(dataArray[i] - 128) / 128;
+  const avg = sum / bufferLength;
+  const sides = Math.max(3, Math.floor(3 + avg * 9)); // 3 .. 12
+
+  // Rotation animates over time
+  const angleOffset = performance.now() * 0.0008 * (1 + avg);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.beginPath();
+  for (let i = 0; i <= sides; i++) {
+    const t = i / sides;
+    // radius warps slightly by instantaneous signal
+    const idx = Math.min(bufferLength - 1, Math.floor(t * (bufferLength - 1)));
+    const warp = (Math.abs(dataArray[idx] - 128) / 128) * 0.25;
+    const r = baseR * (0.8 + warp);
+    const angle = angleOffset + t * Math.PI * 2;
+    const x = r * Math.cos(angle);
+    const y = r * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = theme.glow;
+  ctx.lineWidth = lineWidth;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+  ctx.stroke();
+  ctx.restore();
+  drawGrain();
+}
+
+function drawHarmonicOrbitals() {
+  // Use frequency magnitudes for orbital radii
+  analyser.getByteFrequencyData(dataArray);
+  applyAfterglowEffect();
+  drawGrid("orbitals");
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const cx = width / 2;
+  const cy = height / 2;
+  const baseR = Math.min(width, height) * 0.12;
+
+  // Number of orbitals tied to Fourier harmonics setting for consistency
+  const settings = window.fourierSettings || { harmonics: 16 };
+  const N = Math.max(4, Math.min(48, settings.harmonics));
+  const t = performance.now() / 1000;
+
+  const orbitals = window.orbitalsSettings || { enable3D:true, tiltDeg:-30, depth:700, spin:0.4, showPaths:true, planetSize:3 };
+  const enable3D = !!orbitals.enable3D;
+  const tilt = (orbitals.tiltDeg || -30) * Math.PI / 180;
+  const depth = orbitals.depth || 700;
+  const spin = orbitals.spin || 0.4;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = theme.glow;
+  ctx.lineWidth = lineWidth;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+
+  const showPaths = (window.orbitalsSettings && window.orbitalsSettings.showPaths) ? true : false;
+  const planetSizeBase = (window.orbitalsSettings && window.orbitalsSettings.planetSize) ? window.orbitalsSettings.planetSize : 3;
+  for (let k = 1; k <= N; k++) {
+    const idx = Math.floor((k / N) * (bufferLength - 1));
+    const amp = (dataArray[idx] / 255);
+    const orbitR = baseR * (k * 0.5) * (0.8 + amp);
+    const speed = spin * (0.2 + 0.05 * k);
+    const angle = t * speed * 2 * Math.PI;
+
+    // orbit path
+    if (showPaths) {
+      if (!enable3D) {
+        ctx.beginPath();
+        ctx.arc(0, 0, orbitR, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        // draw elliptical path due to tilt
+        ctx.beginPath();
+        const steps = 64;
+        for (let i = 0; i <= steps; i++) {
+          const a2 = (i / steps) * Math.PI * 2;
+          const x3 = orbitR * Math.cos(a2);
+          const y3 = orbitR * Math.sin(a2) * Math.cos(tilt);
+          const z3 = orbitR * Math.sin(a2) * Math.sin(tilt);
+          const scale = depth / (depth - z3);
+          const x2 = x3 * scale;
+          const y2 = y3 * scale;
+          if (i === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // planet position
+    const px3 = orbitR * Math.cos(angle);
+    const py3 = orbitR * Math.sin(angle) * (enable3D ? Math.cos(tilt) : 1);
+    const pz3 = enable3D ? orbitR * Math.sin(angle) * Math.sin(tilt) : 0;
+    const scaleP = depth / (depth - pz3);
+    const px = px3 * scaleP;
+    const py = py3 * scaleP;
+    ctx.beginPath();
+    ctx.fillStyle = theme.glow;
+    ctx.arc(px, py, Math.max(1.0, planetSizeBase * (0.6 + amp)) * scaleP, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
   drawGrain();
 }

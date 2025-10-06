@@ -83,4 +83,10 @@ function updateTheme(name) {
   if (typeof updateKnobThemes === 'function') {
     updateKnobThemes(theme);
   }
+
+  // CSS vars for consistent slider theming
+  const root = document.documentElement;
+  root.style.setProperty('--ui-border', theme.border);
+  root.style.setProperty('--ui-label', theme.label);
+  root.style.setProperty('--ui-glow', theme.glow);
 } 
