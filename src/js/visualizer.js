@@ -471,3 +471,67 @@ function amplitudeToColor(a) {
   return `hsl(${hue}, 100%, ${lightness}%)`;
 }
 
+function drawParticleCloud() {
+  analyser.getByteFrequencyData(dataArray);
+
+  let sum = 0;
+  let maxAmp = 0;
+  for (let i = 0; i < bufferLength; i++) {
+      sum += dataArray[i];
+      if (dataArray[i] > maxAmp) maxAmp = dataArray[i];
+  }
+  const avgAmp = sum / bufferLength;
+  const normAmp = avgAmp / 255;
+  const normMax = maxAmp / 255;
+  const beatThreshold = 0.9;
+  const isBeat = normMax > beatThreshold;
+
+  ctx.fillStyle = theme.background || "rgba(0,0,0,0.2)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  const perspective = 500;
+  const radius = 200;
+
+  // Rotation around Y-axis
+  const yAngle = performance.now() * 0.001; // rotate over time
+  const inertia = 1;
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    
+    const freqIndex = Math.floor((i / particles.length) * bufferLength);
+    const amplitude = dataArray[freqIndex] / 255 + Math.random()/10;
+    const beatFactor = isBeat ? 1 : 1;
+    const r = radius + amplitude * 100 * beatFactor;
+
+   // Compute target 3D position (spherical or original coordinates)
+    const targetX = p.x ;
+    const targetY = p.y ;
+    const targetZ = p.z ;
+
+     // Apply inertia/smoothing
+    p.x = p.x + (targetX - p.x) * inertia;
+    p.y = p.y + (targetY - p.y) * inertia;
+    p.z = p.z + (targetZ - p.z) * inertia;
+
+    // Rotate around Y-axis
+    const xRot = p.x * Math.cos(yAngle) + p.z * Math.sin(yAngle);
+    const zRot = -p.x * Math.sin(yAngle) + p.z * Math.cos(yAngle);
+    const yRot = p.y ;
+
+    const scale = perspective / (perspective + zRot * r);
+    const size = p.size;
+
+    ctx.fillStyle = theme.glow;
+    ctx.beginPath();
+    ctx.arc(xRot * r * scale, yRot * r * scale, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+  }
+
+  ctx.restore();
+  drawGrid("2dsheet");
+  drawGrain();
+}

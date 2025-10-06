@@ -34,6 +34,26 @@ displayModeSelect.addEventListener("change", () => {
   dataArray = new Uint8Array(bufferLength);
 });
 
+// Initialize particles in a sphere
+const particles = [];
+const numParticles = 2000;
+const maxDepth = 500;
+const sphereRadius = 200;
+
+for (let i = 0; i < numParticles; i++) {
+  const theta = Math.random() * 2 * Math.PI; // azimuthal angle
+  const phi = Math.acos(2 * Math.random() - 1); // polar angle
+  //const r = sphereRadius * Math.cbrt(Math.random()); // cube root for uniform density
+
+  particles.push({
+    x: Math.sin(phi) * Math.cos(theta),
+    y: Math.sin(phi) * Math.sin(theta),
+    z: Math.cos(phi),
+    size: 2,
+    hue: Math.random() * 360
+  });
+}
+
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
@@ -56,6 +76,9 @@ function animate() {
         break;
     case "2D Spectrogram":
       draw2DSpectrogram();
+        break;
+    case "Particle Cloud":
+      drawParticleCloud();
         break;
     default:
       drawWaveform();
