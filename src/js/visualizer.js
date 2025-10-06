@@ -17,7 +17,7 @@ const knobContainer = document.getElementById("knobControls");
 
 const afterglowKnob = new Knob(knobContainer, {
   label: 'Afterglow',
-  min: 0.5,
+  min: 0,
   max: 1.5,
   step: 0.01,
   value: afterglowOpacity,
@@ -253,7 +253,7 @@ stereoDataRight = new Uint8Array(analyserRight.frequencyBinCount);
 
 // Store previous waveforms to make a sheet
 const waveformHistory = [];
-const maxHistory = 80; // number of slices in the sheet
+const maxHistory = 50; // number of slices in the sheet
 
 function draw3DWaveformflat() {
   analyser.getByteTimeDomainData(dataArray);
@@ -380,3 +380,94 @@ function draw3DWaveformtop() {
   ctx.restore();
   drawGrain();
 }
+
+function draw3DSpectrogram() {
+  analyser.getByteFrequencyData(dataArray);
+
+  const snapshot = Array.from(dataArray);
+  waveformHistory.unshift(snapshot);
+  if (waveformHistory.length > maxHistory) waveformHistory.pop();
+
+  applyAfterglowEffect();
+  drawGrid("3dsheet");
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 1.5);
+
+  const perspective = 750;
+  const amplitude = canvas.height / 3; 
+  const sliceWidth = canvas.width / bufferLength / 2;
+  const depthSpacing = 20;
+  const tilt = -Math.PI / 4;
+
+  const cosT = Math.cos(tilt);
+  const sinT = Math.sin(tilt);
+  const step = Math.floor(bufferLength / 256); // draw fewer points
+
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = theme.cartoon ? 0 : 10;
+  ctx.shadowColor = theme.glow;
+
+ 
+
+  for (let h = 0; h < waveformHistory.length; h++) {
+    const spectrum = waveformHistory[h];
+    const z3d = -h * depthSpacing;
+
+    ctx.beginPath();
+
+    for (let i = 0; i < bufferLength; i += step) {
+      const freqAmp = spectrum[i] / 255.0;
+      const x3d = (i - bufferLength / 2) * sliceWidth;
+      const y3d = -freqAmp * amplitude * smoothingFactor;
+
+      const yTilt = y3d * cosT - z3d * sinT;
+      const zTilt = y3d * sinT + z3d * cosT;
+      const scale = perspective / (perspective - zTilt);
+      const x2d = x3d * scale;
+      const y2d = yTilt * scale;
+
+      ctx.strokeStyle = theme.glow;
+
+      if (i === 0) ctx.moveTo(x2d, y2d);
+      else ctx.lineTo(x2d, y2d);
+    }
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  drawGrain();
+}
+
+function draw2DSpectrogram() {
+  // Get current frequency data
+  analyser.getByteFrequencyData(dataArray);
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const barHeight = height / bufferLength;
+
+  // Shift existing image left by 1px to make space for new column
+  const imageData = ctx.getImageData(1, 0, width - 1, height);
+  ctx.putImageData(imageData, 0, 0);
+
+  // Draw the new column on the right
+  for (let i = 0; i < bufferLength; i++) {
+    const value = dataArray[i] / 255.0;
+    ctx.fillStyle = amplitudeToColor(value);
+    const y = height - i * barHeight;
+    ctx.fillRect(width - 1, y, 1, barHeight);
+  }
+
+  //drawGrid("2dsheet");
+  //drawGrain();
+}
+
+// Map amplitude → heatmap color (blue → cyan → yellow → red)
+function amplitudeToColor(a) {
+  const hue = (240 - a * 240) % 360; // 240=blue, 0=red
+  const lightness = 40 + a * 40;
+  return `hsl(${hue}, 100%, ${lightness}%)`;
+}
+

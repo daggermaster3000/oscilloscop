@@ -11,7 +11,6 @@
     .window-header {
       display: flex; align-items: center; gap: 8px;
       background: rgba(0, 0, 0, 0.9);
-      
       cursor: move;
     }
     .window-title { font-weight: bold; }
@@ -73,6 +72,19 @@
           <option value="amber">Amber Orange</option>
           <option value="red">Night Vision Red</option>
           <option value="cartoon">Cartoon Split</option>
+          <option value="scientific">Scientific Neon</option>
+          <option value="modern">Modern Blue</option>
+          <option value="retro">Retro Magenta</option>
+          <option value="viking">Viking Bronze</option>
+          <option value="cyberpunk">Cyberpunk Glow</option>
+          <option value="space">Space Horizon</option>
+          <option value="magma">Magma Core</option>
+          <option value="aurora">Aurora Sky</option>
+          <option value="storm">Electric Storm</option>
+          <option value="ocean">Ocean Deep</option>
+          <option value="lava">Lava Flow</option>
+          <option value="pastel">Pastel Dream</option>
+          <option value="minimal">Minimal Contrast</option>
         </select>
       </label>
 
@@ -84,6 +96,8 @@
           <option value="stereo">Stereo Phase</option>
           <option value="3D Waveform flat">3D waveform flat</option>
           <option value="3D Waveform top">3D waveform top</option>
+          <option value="3D Spectrogram">3D spectrogram</option>
+          <option value="2D Spectrogram">2D spectrogram</option>
         </select>
       </label>
 
@@ -140,11 +154,10 @@
         </ul>
       </div>
       <footer>
-        <button class="retro-btn" style="color:white; border: 1px solid white;"id="closeInstructions">Close</button>
+        <button class="retro-btn" style="color:white; border: 1px solid white;" id="closeInstructions">Close</button>
       </footer>
     </div>
   </div>
-  
 
   <canvas id="oscilloscope"></canvas>
 
@@ -155,35 +168,82 @@
   <script src="js/main.js"></script>
 
   <script>
-    // Draggable controls
-    (function(){
-      const controls = document.getElementById('controls');
-      const header = document.getElementById('controlsHeader');
-      let pos = {x:0,y:0}, dragging=false, origin={x:0,y:0};
-      header.addEventListener('mousedown', (e)=>{
-        dragging = true; origin.x = e.clientX; origin.y = e.clientY;
-        const rect = controls.getBoundingClientRect(); pos.x = rect.left; pos.y = rect.top;
-        document.body.style.cursor = 'move';
-      });
-      window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.cursor='default'; });
-      window.addEventListener('mousemove', (e)=>{
-        if(!dragging) return;
-        const dx = e.clientX - origin.x; const dy = e.clientY - origin.y;
-        controls.style.left = (pos.x + dx) + 'px';
-        controls.style.top = (pos.y + dy) + 'px';
-      });
-      // Collapse toggle
-      const collapseBtn = document.getElementById('collapseBtn');
-      collapseBtn.addEventListener('click', ()=>{
-        controls.classList.toggle('window-collapsed');
-        collapseBtn.textContent = controls.classList.contains('window-collapsed') ? 'Expand' : 'Collapse';
-      });
-      // Instructions modal
-      const modal = document.getElementById('instructionsModal');
-      document.getElementById('instructionsBtn').addEventListener('click', ()=>{ modal.style.display = 'flex'; });
-      document.getElementById('closeInstructions').addEventListener('click', ()=>{ modal.style.display = 'none'; });
-      modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.style.display='none'; });
-    })();
+  document.addEventListener("DOMContentLoaded", () => {
+    // --- Draggable controls ---
+    const controls = document.getElementById('controls');
+    const header = document.getElementById('controlsHeader');
+    let pos = {x:0,y:0}, dragging=false, origin={x:0,y:0};
+    header.addEventListener('mousedown', (e)=>{
+      dragging = true; origin.x = e.clientX; origin.y = e.clientY;
+      const rect = controls.getBoundingClientRect(); pos.x = rect.left; pos.y = rect.top;
+      document.body.style.cursor = 'move';
+    });
+    window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.cursor='default'; });
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - origin.x; const dy = e.clientY - origin.y;
+      controls.style.left = (pos.x + dx) + 'px';
+      controls.style.top = (pos.y + dy) + 'px';
+    });
+    // Collapse toggle
+    const collapseBtn = document.getElementById('collapseBtn');
+    collapseBtn.addEventListener('click', ()=>{
+      controls.classList.toggle('window-collapsed');
+      collapseBtn.textContent = controls.classList.contains('window-collapsed') ? 'Expand' : 'Collapse';
+    });
+    // Instructions modal
+    const modal = document.getElementById('instructionsModal');
+    document.getElementById('instructionsBtn').addEventListener('click', ()=>{ modal.style.display = 'flex'; });
+    document.getElementById('closeInstructions').addEventListener('click', ()=>{ modal.style.display = 'none'; });
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.style.display='none'; });
+
+    // --- SETTINGS TO URL ---
+    const themeSelect = document.getElementById("themeSelect");
+    const displayMode = document.getElementById("displayMode");
+    const afterglowControl = document.getElementById("afterglowControl");
+    const afterglowValue = document.getElementById("afterglowValue");
+
+    if (!themeSelect || !displayMode || !afterglowControl || !afterglowValue) return;
+
+    // Load settings from URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("theme")) themeSelect.value = params.get("theme");
+    if (params.has("displayMode")) displayMode.value = params.get("displayMode");
+    if (params.has("afterglow")) {
+      afterglowControl.value = parseFloat(params.get("afterglow")) * 100;
+      afterglowValue.textContent = params.get("afterglow");
+    }
+
+    function updateURL() {
+      const settings = {
+        theme: themeSelect.value,
+        displayMode: displayMode.value,
+        afterglow: (afterglowControl.value/100).toFixed(2)
+      };
+      const newParams = new URLSearchParams(settings);
+      const newURL = `${window.location.origin}${window.location.pathname}?${newParams}`;
+      window.history.replaceState({}, "", newURL);
+    }
+
+    themeSelect.addEventListener("change", updateURL);
+    displayMode.addEventListener("change", updateURL);
+    afterglowControl.addEventListener("input", () => {
+      afterglowValue.textContent = (afterglowControl.value/100).toFixed(2);
+      updateURL();
+    });
+
+    // Copy settings button
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "Copy Settings URL";
+    copyBtn.className = "retro-btn";
+    themeSelect.parentElement.after(copyBtn);
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(window.location.href);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => copyBtn.textContent = "Copy Settings URL", 1500);
+    });
+
+  });
   </script>
 </body>
-</html> 
+</html>

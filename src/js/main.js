@@ -51,6 +51,12 @@ function animate() {
     case "3D Waveform top":
         draw3DWaveformtop();
         break;
+    case "3D Spectrogram":
+      draw3DSpectrogram();
+        break;
+    case "2D Spectrogram":
+      draw2DSpectrogram();
+        break;
     default:
       drawWaveform();
   }
