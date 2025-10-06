@@ -97,6 +97,15 @@ const orbitalsDepthInput = document.getElementById('orbitalsDepth');
 const orbitalsDepthValue = document.getElementById('orbitalsDepthValue');
 const orbitalsSpinInput = document.getElementById('orbitalsSpin');
 const orbitalsSpinValue = document.getElementById('orbitalsSpinValue');
+// GoL controls
+const golCellSizeInput = document.getElementById('golCellSize');
+const golCellSizeValue = document.getElementById('golCellSizeValue');
+const golReseedInput = document.getElementById('golReseed');
+const golReseedValue = document.getElementById('golReseedValue');
+const golBirthBoostInput = document.getElementById('golBirthBoost');
+const golBirthBoostValue = document.getElementById('golBirthBoostValue');
+const golSurvivalBoostInput = document.getElementById('golSurvivalBoost');
+const golSurvivalBoostValue = document.getElementById('golSurvivalBoostValue');
 const rotateXInput = document.getElementById('rotateX');
 const rotateYInput = document.getElementById('rotateY');
 const rotateZInput = document.getElementById('rotateZ');
@@ -336,6 +345,59 @@ function bindOrbitalsControls() {
 
 bindOrbitalsControls();
 
+// GoL state
+window.golSettings = {
+  cellSize: golCellSizeInput ? parseInt(golCellSizeInput.value, 10) : 3,
+  reseed: golReseedInput ? parseFloat(golReseedInput.value) : 0.3,
+  birthBoost: golBirthBoostInput ? parseFloat(golBirthBoostInput.value) : 0.3,
+  survivalBoost: golSurvivalBoostInput ? parseFloat(golSurvivalBoostInput.value) : 0.45
+};
+
+function bindGolControls() {
+  if (golCellSizeInput) {
+    const onS = () => {
+      const v = Math.max(1, Math.min(24, parseInt(golCellSizeInput.value || '3', 10)));
+      window.golSettings.cellSize = v;
+      if (golCellSizeValue) golCellSizeValue.textContent = String(v);
+    };
+    golCellSizeInput.addEventListener('input', onS);
+    golCellSizeInput.addEventListener('change', onS);
+    onS();
+  }
+  if (golReseedInput) {
+    const onR = () => {
+      const v = Math.max(0, Math.min(1, parseFloat(golReseedInput.value || '0.3')));
+      window.golSettings.reseed = v;
+      if (golReseedValue) golReseedValue.textContent = v.toFixed(2);
+    };
+    golReseedInput.addEventListener('input', onR);
+    golReseedInput.addEventListener('change', onR);
+    onR();
+  }
+  if (golBirthBoostInput) {
+    const onB = () => {
+      const v = Math.max(0, Math.min(1, parseFloat(golBirthBoostInput.value || '0.3')));
+      window.golSettings.birthBoost = v;
+      if (golBirthBoostValue) golBirthBoostValue.textContent = v.toFixed(2);
+    };
+    golBirthBoostInput.addEventListener('input', onB);
+    golBirthBoostInput.addEventListener('change', onB);
+    onB();
+  }
+  if (golSurvivalBoostInput) {
+    const onSv = () => {
+      const v = Math.max(0, Math.min(1, parseFloat(golSurvivalBoostInput.value || '0.45')));
+      window.golSettings.survivalBoost = v;
+      if (golSurvivalBoostValue) golSurvivalBoostValue.textContent = v.toFixed(2);
+    };
+    golSurvivalBoostInput.addEventListener('input', onSv);
+    golSurvivalBoostInput.addEventListener('change', onSv);
+    onSv();
+  }
+}
+
+bindGolControls();
+
 function bindRotationControl(chk, speedInput, valueLabel, keyEnable, keySpeed) {
   if (!chk || !speedInput) return;
   const update = () => {
@@ -388,6 +450,9 @@ function animate() {
       break;
     case "Harmonic Orbital Systems":
       drawHarmonicOrbitals();
+      break;
+    case "Game of Life":
+      drawGameOfLife();
       break;
     default:
       drawWaveform();

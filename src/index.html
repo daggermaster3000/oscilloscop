@@ -102,6 +102,7 @@
           <option value="Fourier Series Shape">Fourier Series Shape</option>
           <option value="Polygon Morph">Polygon Morph</option>
           <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
+          <option value="Game of Life">Game of Life</option>
         </select>
       </label>
 
@@ -248,6 +249,30 @@
           <span id="orbitalsSpinValue">0.40</span>
         </label>
       </div>
+
+      <div class="control-section" id="golControls">
+        <h3>Game of Life</h3>
+        <label>
+          Cell Size (px):
+          <input type="range" id="golCellSize" min="1" max="12" step="1" value="3">
+          <span id="golCellSizeValue">3</span>
+        </label>
+        <label>
+          Reseed Intensity:
+          <input type="range" id="golReseed" min="0" max="1" step="0.01" value="0.30">
+          <span id="golReseedValue">0.30</span>
+        </label>
+        <label>
+          Birth Boost Threshold:
+          <input type="range" id="golBirthBoost" min="0" max="1" step="0.01" value="0.30">
+          <span id="golBirthBoostValue">0.30</span>
+        </label>
+        <label>
+          Survival Boost Threshold:
+          <input type="range" id="golSurvivalBoost" min="0" max="1" step="0.01" value="0.45">
+          <span id="golSurvivalBoostValue">0.45</span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -380,7 +405,12 @@
             o3D: (document.getElementById('orbitals3D')||{}).checked,
             oTilt: (document.getElementById('orbitalsTilt')||{}).value,
             oDepth: (document.getElementById('orbitalsDepth')||{}).value,
-            oSpin: (document.getElementById('orbitalsSpin')||{}).value
+            oSpin: (document.getElementById('orbitalsSpin')||{}).value,
+            // gol
+            golS: (document.getElementById('golCellSize')||{}).value,
+            golR: (document.getElementById('golReseed')||{}).value,
+            golB: (document.getElementById('golBirthBoost')||{}).value,
+            golSv: (document.getElementById('golSurvivalBoost')||{}).value
           };
       const newParams = new URLSearchParams(settings);
       const newURL = `${window.location.origin}${window.location.pathname}?${newParams}`;
@@ -399,7 +429,8 @@
           'particleResponse','particleCount','particleSize','equationPreset','eqX','eqY','eqZ',
           'rotatePreset','rotateX','rotateY','rotateZ','rotateXSpeed','rotateYSpeed','rotateZSpeed',
           'fourierHarmonics','fourierContribution',
-          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin'
+          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin',
+          'golCellSize','golReseed','golBirthBoost','golSurvivalBoost'
         ].forEach(id => {
           const el = document.getElementById(id);
           if (!el) return;
@@ -447,12 +478,17 @@
         if (params.has('oTilt')) (document.getElementById('orbitalsTilt')||{}).value = params.get('oTilt');
         if (params.has('oDepth')) (document.getElementById('orbitalsDepth')||{}).value = params.get('oDepth');
         if (params.has('oSpin')) (document.getElementById('orbitalsSpin')||{}).value = params.get('oSpin');
+        if (params.has('golS')) (document.getElementById('golCellSize')||{}).value = params.get('golS');
+        if (params.has('golR')) (document.getElementById('golReseed')||{}).value = params.get('golR');
+        if (params.has('golB')) (document.getElementById('golBirthBoost')||{}).value = params.get('golB');
+        if (params.has('golSv')) (document.getElementById('golSurvivalBoost')||{}).value = params.get('golSv');
 
         // Trigger listeners to ensure state sync
         ['themeSelect','displayMode','afterglowControl','particleResponse','particleCount','particleSize',
          'equationPreset','eqX','eqY','eqZ','rotatePreset','rotateX','rotateY','rotateZ',
          'rotateXSpeed','rotateYSpeed','rotateZSpeed','fourierHarmonics','fourierContribution',
          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin']
+         .concat(['golCellSize','golReseed','golBirthBoost','golSurvivalBoost'])
           .forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;

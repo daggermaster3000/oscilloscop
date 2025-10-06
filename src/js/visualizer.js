@@ -736,3 +736,90 @@ function drawHarmonicOrbitals() {
   ctx.restore();
   drawGrain();
 }
+
+// --- Game of Life influenced by audio ---
+let golGrid = null;
+let golCols = 0;
+let golRows = 0;
+let golCellSize = 3; // px
+function initGameOfLife() {
+  golCols = Math.floor(canvas.width / golCellSize);
+  golRows = Math.floor(canvas.height / golCellSize);
+  golGrid = new Array(golRows);
+  for (let y = 0; y < golRows; y++) {
+    golGrid[y] = new Array(golCols).fill(0);
+  }
+  // dense initial seed for visibility
+  for (let y = 0; y < golRows; y++) {
+    for (let x = 0; x < golCols; x++) {
+      if (Math.random() < 0.18) golGrid[y][x] = 1;
+    }
+  }
+}
+
+function drawGameOfLife() {
+  // allow runtime change in cell size via settings
+  if (window.golSettings && window.golSettings.cellSize && golCellSize !== window.golSettings.cellSize) {
+    golCellSize = window.golSettings.cellSize;
+    golGrid = null;
+  }
+  if (!golGrid || golCols !== Math.floor(canvas.width / golCellSize) || golRows !== Math.floor(canvas.height / golCellSize)) {
+    initGameOfLife();
+  }
+
+  // get audio amplitude to influence randomness
+  analyser.getByteTimeDomainData(dataArray);
+  let sum = 0;
+  for (let i = 0; i < bufferLength; i++) sum += Math.abs(dataArray[i] - 128) / 128;
+  const avg = sum / bufferLength;
+
+  // occasional reseed or noise injection proportional to audio
+  const reseedBase = window.golSettings ? window.golSettings.reseed : 0.3;
+  const seedProb = Math.min(0.6, reseedBase + avg * 0.5);
+  for (let y = 0; y < golRows; y++) {
+    for (let x = 0; x < golCols; x++) {
+      if (Math.random() < seedProb * 0.003) golGrid[y][x] = 1;
+    }
+  }
+
+  // apply GoL rules
+  const next = new Array(golRows);
+  for (let y = 0; y < golRows; y++) {
+    next[y] = new Array(golCols).fill(0);
+    for (let x = 0; x < golCols; x++) {
+      let n = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const yy = (y + dy + golRows) % golRows;
+          const xx = (x + dx + golCols) % golCols;
+          n += golGrid[yy][xx];
+        }
+      }
+      const alive = golGrid[y][x] === 1;
+      // S23/B3 with audio-driven boosts to prolong life
+      if (alive) {
+        const survivalThresh = window.golSettings ? window.golSettings.survivalBoost : 0.45;
+        if (n === 2 || n === 3 || (avg > survivalThresh && n === 1)) next[y][x] = 1;
+      } else {
+        const birthThresh = window.golSettings ? window.golSettings.birthBoost : 0.3;
+        if (n === 3 || (avg > birthThresh && n === 2)) next[y][x] = 1;
+      }
+    }
+  }
+  golGrid = next;
+
+  applyAfterglowEffect();
+  // draw
+  ctx.save();
+  ctx.fillStyle = theme.glow;
+  for (let y = 0; y < golRows; y++) {
+    for (let x = 0; x < golCols; x++) {
+      if (golGrid[y][x]) {
+        ctx.fillRect(x * golCellSize, y * golCellSize, golCellSize - 1, golCellSize - 1);
+      }
+    }
+  }
+  ctx.restore();
+  drawGrain();
+}
