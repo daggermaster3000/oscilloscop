@@ -109,4 +109,230 @@ input[type="range"]::-moz-range-thumb {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: center;
+}
+
+/* Onboarding Styles */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 9998;
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.onboarding-highlight {
+  position: fixed;
+  border: 3px solid #00FF99;
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(0, 255, 153, 0.3),
+              0 0 20px rgba(0, 255, 153, 0.5),
+              inset 0 0 20px rgba(0, 255, 153, 0.1);
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  animation: pulse 2s ease-in-out infinite;
+  background: rgba(0, 255, 153, 0.05);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(0, 255, 153, 0.3),
+                0 0 20px rgba(0, 255, 153, 0.5),
+                inset 0 0 20px rgba(0, 255, 153, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 255, 153, 0.5),
+                0 0 30px rgba(0, 255, 153, 0.7),
+                inset 0 0 30px rgba(0, 255, 153, 0.2);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.onboarding-tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #00FF99;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 420px;
+  z-index: 10000;
+  display: none;
+  box-shadow: 0 8px 32px rgba(0, 255, 153, 0.3),
+              0 0 60px rgba(0, 255, 153, 0.2);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 255, 153, 0.3);
+  background: rgba(0, 255, 153, 0.05);
+}
+
+.onboarding-header h3 {
+  margin: 0;
+  color: #00FF99;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.onboarding-close {
+  background: transparent;
+  border: 1px solid #00FF99;
+  color: #00FF99;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.onboarding-close:hover {
+  background: rgba(0, 255, 153, 0.2);
+  box-shadow: 0 0 10px rgba(0, 255, 153, 0.5);
+}
+
+.onboarding-content {
+  padding: 20px;
+  color: #e0e0e0;
+  font-family: monospace;
+  line-height: 1.6;
+}
+
+.onboarding-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.onboarding-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(0, 255, 153, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.onboarding-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.onboarding-progress span {
+  color: #00FF99;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.onboarding-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 255, 153, 0.3);
+  border: 1px solid rgba(0, 255, 153, 0.5);
+  transition: all 0.3s ease;
+}
+
+.onboarding-dots .dot.active {
+  background: #00FF99;
+  box-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+  transform: scale(1.2);
+}
+
+.onboarding-dots .dot.completed {
+  background: rgba(0, 255, 153, 0.6);
+  border-color: #00FF99;
+}
+
+.onboarding-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.onboarding-btn {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.onboarding-btn.primary {
+  background: #00FF99;
+  color: #000;
+  border: 2px solid #00FF99;
+}
+
+.onboarding-btn.primary:hover {
+  background: #00cc7a;
+  box-shadow: 0 0 15px rgba(0, 255, 153, 0.6);
+  transform: translateY(-1px);
+}
+
+.onboarding-btn.secondary {
+  background: transparent;
+  color: #00FF99;
+  border: 2px solid #00FF99;
+}
+
+.onboarding-btn.secondary:hover {
+  background: rgba(0, 255, 153, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 153, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .onboarding-tooltip {
+    max-width: calc(100vw - 40px);
+    left: 20px !important;
+    right: 20px !important;
+    transform: none !important;
+  }
+  
+  .onboarding-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .onboarding-buttons {
+    width: 100%;
+  }
+  
+  .onboarding-btn {
+    flex: 1;
+  }
 } 

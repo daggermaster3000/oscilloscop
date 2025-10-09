@@ -23,6 +23,31 @@ themeSelect.addEventListener("change", () => {
 });
 
 // Display mode handling
+function updateModeSpecificControls(mode) {
+  // Get control sections
+  const particleControls = document.getElementById('particleControls');
+  const fourierControls = document.getElementById('fourierControls');
+  const orbitalsControls = document.getElementById('orbitalsControls');
+  const golControls = document.getElementById('golControls');
+  
+  // Hide all mode-specific controls by default
+  if (particleControls) particleControls.style.display = 'none';
+  if (fourierControls) fourierControls.style.display = 'none';
+  if (orbitalsControls) orbitalsControls.style.display = 'none';
+  if (golControls) golControls.style.display = 'none';
+  
+  // Show controls based on selected mode
+  if (mode === 'Particle Cloud' && particleControls) {
+    particleControls.style.display = 'block';
+  } else if (mode === 'Fourier Series Shape' && fourierControls) {
+    fourierControls.style.display = 'block';
+  } else if (mode === 'Harmonic Orbital Systems' && orbitalsControls) {
+    orbitalsControls.style.display = 'block';
+  } else if (mode === 'Game of Life' && golControls) {
+    golControls.style.display = 'block';
+  }
+}
+
 displayModeSelect.addEventListener("change", () => {
   const mode = displayModeSelect.value;
   if (mode === "fft") {
@@ -32,7 +57,13 @@ displayModeSelect.addEventListener("change", () => {
   }
   bufferLength = analyser.frequencyBinCount;
   dataArray = new Uint8Array(bufferLength);
+  
+  // Update visibility of mode-specific controls
+  updateModeSpecificControls(mode);
 });
+
+// Initialize control visibility on page load
+updateModeSpecificControls(displayModeSelect.value);
 
 // --- Particle Cloud State & Controls ---
 const particles = [];

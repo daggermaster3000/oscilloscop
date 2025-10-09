@@ -41,6 +41,7 @@
     <div class="window-header" id="controlsHeader">
       <span class="window-title">Oscilloscope Controls</span>
       <div class="window-spacer"></div>
+      <button class="retro-btn" id="tutorialBtn" title="Start tutorial">Tutorial</button>
       <button class="retro-btn" id="instructionsBtn">Instructions</button>
       <button class="retro-btn" id="collapseBtn">Collapse</button>
     </div>
@@ -104,12 +105,6 @@
           <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
           <option value="Game of Life">Game of Life</option>
         </select>
-      </label>
-
-      <label>
-        Afterglow:
-        <input type="range" id="afterglowControl" min="0" max="100" value="92">
-        <span id="afterglowValue">0.92</span>
       </label>
 
       <div class="control-section">
@@ -320,6 +315,7 @@
   <script src="js/audio.js"></script>
   <script src="js/visualizer.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/onboarding.js"></script>
 
   <script>
   document.addEventListener("DOMContentLoaded", () => {
@@ -350,12 +346,17 @@
     document.getElementById('instructionsBtn').addEventListener('click', ()=>{ modal.style.display = 'flex'; });
     document.getElementById('closeInstructions').addEventListener('click', ()=>{ modal.style.display = 'none'; });
     modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.style.display='none'; });
+    
+    // Tutorial button
+    document.getElementById('tutorialBtn').addEventListener('click', ()=>{
+      if (window.onboardingInstance) {
+        window.onboardingInstance.restart();
+      }
+    });
 
     // --- SETTINGS TO URL ---
     const themeSelect = document.getElementById("themeSelect");
     const displayMode = document.getElementById("displayMode");
-    const afterglowControl = document.getElementById("afterglowControl");
-    const afterglowValue = document.getElementById("afterglowValue");
 
     if (!themeSelect || !displayMode) return;
 
@@ -363,16 +364,11 @@
     const params = new URLSearchParams(window.location.search);
     if (params.has("theme")) themeSelect.value = params.get("theme");
     if (params.has("displayMode")) displayMode.value = params.get("displayMode");
-    if (params.has("afterglow")) {
-      afterglowControl.value = parseFloat(params.get("afterglow")) * 100;
-      afterglowValue.textContent = params.get("afterglow");
-    }
 
         function updateURL() {
           const settings = {
             theme: themeSelect.value,
             displayMode: displayMode.value,
-            afterglow: (afterglowControl.value/100).toFixed(2),
             // particle
             pResp: (document.getElementById('particleResponse')||{}).value,
             pCount: (document.getElementById('particleCount')||{}).value,
@@ -411,10 +407,6 @@
 
         themeSelect.addEventListener("change", updateURL);
         displayMode.addEventListener("change", updateURL);
-        afterglowControl.addEventListener("input", () => {
-      afterglowValue.textContent = (afterglowControl.value/100).toFixed(2);
-      updateURL();
-    });
 
         // wire extra controls to URL sync
         [
@@ -476,7 +468,7 @@
         if (params.has('golSv')) (document.getElementById('golSurvivalBoost')||{}).value = params.get('golSv');
 
         // Trigger listeners to ensure state sync
-        ['themeSelect','displayMode','afterglowControl','particleResponse','particleCount','particleSize',
+        ['themeSelect','displayMode','particleResponse','particleCount','particleSize',
          'equationPreset','eqX','eqY','eqZ','rotatePreset','rotateX','rotateY','rotateZ',
          'rotateXSpeed','rotateYSpeed','rotateZSpeed','fourierHarmonics','fourierContribution',
          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin']
