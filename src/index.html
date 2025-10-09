@@ -103,6 +103,9 @@
           <option value="Polygon Morph">Polygon Morph</option>
           <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
           <option value="Game of Life">Game of Life</option>
+          <option value="Mood Visualization">Mood Visualization</option>
+          <option value="Mood-Responsive Waveform">Mood-Responsive Waveform</option>
+          <option value="Mood-Responsive Particles">Mood-Responsive Particles</option>
         </select>
       </label>
 
@@ -273,6 +276,29 @@
           <span id="golSurvivalBoostValue">0.45</span>
         </label>
       </div>
+
+      <div class="control-section" id="moodControls">
+        <h3>Mood Classification</h3>
+        <label>
+          <input type="checkbox" id="moodEnabled" checked>
+          Enable Mood Detection
+        </label>
+        <label>
+          Classification Interval (ms):
+          <input type="range" id="moodInterval" min="500" max="5000" step="100" value="1000">
+          <span id="moodIntervalValue">1000</span>
+        </label>
+        <label>
+          Mood Sensitivity:
+          <input type="range" id="moodSensitivity" min="0.1" max="1.0" step="0.05" value="0.7">
+          <span id="moodSensitivityValue">0.7</span>
+        </label>
+        <div id="moodStatus" style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+          <div>Status: <span id="moodStatusText">Loading YAMNet...</span></div>
+          <div>Current Mood: <span id="currentMood">-</span></div>
+          <div>Confidence: <span id="moodConfidence">-</span></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -294,6 +320,9 @@
               <li>Polygon Morph: audio morphs sides, rotation, and radius for geometric shapes.</li>
               <li>Harmonic Orbital Systems: audio‑scaled planets orbit with optional 3D tilt, depth, spin; toggle orbit paths, set planet size.</li>
               <li>Game of Life: audio injects life/noise and biases rules. Tune Cell Size, Reseed, Birth/Survival thresholds.</li>
+              <li>Mood Visualization: AI-powered mood detection using YAMNet shows current audio mood with intensity rings and confidence bars.</li>
+              <li>Mood-Responsive Waveform: traditional waveform that adapts color, thickness, and effects based on detected mood.</li>
+              <li>Mood-Responsive Particles: particle cloud that changes shape, rotation speed, and color based on audio mood classification.</li>
             </ul>
           </li>
           <li>
@@ -303,7 +332,10 @@
             <strong>Copy/Share:</strong> use “Copy Settings URL” to share the exact configuration. Loading a URL restores all controls (display mode, particle equations/rotation, Fourier/orbitals/GoL settings, etc...).
           </li>
           <li>
-            <strong>Tips:</strong> increase Particle Count or decrease GoL Cell Size for denser visuals; switch Audio Response between FFT and Signal for different motion; Adjust survival boost for GoL to respond to different audio dynamics
+            <strong>Mood Classification:</strong> enable AI-powered mood detection to automatically classify audio intensity and mood. Adjust classification interval and sensitivity. Mood affects visual styling in mood-responsive modes.
+          </li>
+          <li>
+            <strong>Tips:</strong> increase Particle Count or decrease GoL Cell Size for denser visuals; switch Audio Response between FFT and Signal for different motion; Adjust survival boost for GoL to respond to different audio dynamics; Enable mood detection for dynamic visual responses
           </li>
         </ul>
       </div>
@@ -315,9 +347,14 @@
 
   <canvas id="oscilloscope"></canvas>
 
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.8/dist/tf-tflite.min.js"></script>
+  
   <script src="js/themes.js"></script>
   <script src="js/knob.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/yamnet.js"></script>
   <script src="js/visualizer.js"></script>
   <script src="js/main.js"></script>
 

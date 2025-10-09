@@ -106,6 +106,13 @@ const golBirthBoostInput = document.getElementById('golBirthBoost');
 const golBirthBoostValue = document.getElementById('golBirthBoostValue');
 const golSurvivalBoostInput = document.getElementById('golSurvivalBoost');
 const golSurvivalBoostValue = document.getElementById('golSurvivalBoostValue');
+
+// Mood controls
+const moodEnabledInput = document.getElementById('moodEnabled');
+const moodIntervalInput = document.getElementById('moodInterval');
+const moodIntervalValue = document.getElementById('moodIntervalValue');
+const moodSensitivityInput = document.getElementById('moodSensitivity');
+const moodSensitivityValue = document.getElementById('moodSensitivityValue');
 const rotateXInput = document.getElementById('rotateX');
 const rotateYInput = document.getElementById('rotateY');
 const rotateZInput = document.getElementById('rotateZ');
@@ -398,6 +405,56 @@ function bindGolControls() {
 
 bindGolControls();
 
+// Mood settings
+window.moodSettings = {
+  enabled: moodEnabledInput ? moodEnabledInput.checked : true,
+  interval: moodIntervalInput ? parseInt(moodIntervalInput.value) : 1000,
+  sensitivity: moodSensitivityInput ? parseFloat(moodSensitivityInput.value) : 0.7
+};
+
+function bindMoodControls() {
+  if (moodEnabledInput) {
+    moodEnabledInput.addEventListener('change', () => {
+      window.moodSettings.enabled = moodEnabledInput.checked;
+      if (window.moodSettings.enabled && window.yamnetClassifier && window.yamnetClassifier.isReady) {
+        window.yamnetClassifier.startClassification(audioCtx, analyser);
+      } else if (window.yamnetClassifier) {
+        window.yamnetClassifier.stopClassification();
+      }
+    });
+  }
+  
+  if (moodIntervalInput) {
+    const onInterval = () => {
+      const v = parseInt(moodIntervalInput.value || '1000');
+      window.moodSettings.interval = v;
+      if (moodIntervalValue) moodIntervalValue.textContent = String(v);
+      
+      // Restart classification with new interval
+      if (window.yamnetClassifier && window.moodSettings.enabled) {
+        window.yamnetClassifier.stopClassification();
+        window.yamnetClassifier.startClassification(audioCtx, analyser);
+      }
+    };
+    moodIntervalInput.addEventListener('input', onInterval);
+    moodIntervalInput.addEventListener('change', onInterval);
+    onInterval();
+  }
+  
+  if (moodSensitivityInput) {
+    const onSensitivity = () => {
+      const v = parseFloat(moodSensitivityInput.value || '0.7');
+      window.moodSettings.sensitivity = v;
+      if (moodSensitivityValue) moodSensitivityValue.textContent = v.toFixed(2);
+    };
+    moodSensitivityInput.addEventListener('input', onSensitivity);
+    moodSensitivityInput.addEventListener('change', onSensitivity);
+    onSensitivity();
+  }
+}
+
+bindMoodControls();
+
 function bindRotationControl(chk, speedInput, valueLabel, keyEnable, keySpeed) {
   if (!chk || !speedInput) return;
   const update = () => {
@@ -454,6 +511,15 @@ function animate() {
     case "Game of Life":
       drawGameOfLife();
       break;
+    case "Mood Visualization":
+      drawMoodVisualization();
+      break;
+    case "Mood-Responsive Waveform":
+      drawMoodResponsiveWaveform();
+      break;
+    case "Mood-Responsive Particles":
+      drawMoodResponsiveParticles();
+      break;
     default:
       drawWaveform();
   }
@@ -461,4 +527,14 @@ function animate() {
 
 // Initialize theme and start animation
 updateTheme("green");
+
+// Initialize mood classification when YAMNet is ready
+if (window.yamnetClassifier) {
+  window.yamnetClassifier.init().then(() => {
+    if (window.moodSettings && window.moodSettings.enabled) {
+      window.yamnetClassifier.startClassification(audioCtx, analyser);
+    }
+  });
+}
+
 animate(); 

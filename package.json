@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "naudiodon": "^2.3.6",
+    "ws": "^8.18.3"
+  }
+}

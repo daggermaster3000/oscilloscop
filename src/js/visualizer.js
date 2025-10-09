@@ -823,3 +823,221 @@ function drawGameOfLife() {
   ctx.restore();
   drawGrain();
 }
+
+// --- Mood-Based Visualizations ---
+
+function drawMoodVisualization() {
+  const mood = window.yamnetClassifier ? window.yamnetClassifier.getCurrentMood() : { mood: 'neutral', intensity: 0.5, confidence: 0, color: '#74b9ff' };
+  
+  applyAfterglowEffect();
+  drawGrid("mood");
+  
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  
+  // Draw mood circle with intensity-based size
+  const baseRadius = Math.min(width, height) * 0.15;
+  const radius = baseRadius * (1 + mood.intensity * 2);
+  
+  // Create gradient
+  const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+  gradient.addColorStop(0, mood.color + '80');
+  gradient.addColorStop(0.7, mood.color + '40');
+  gradient.addColorStop(1, mood.color + '10');
+  
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Draw mood text
+  ctx.fillStyle = theme.glow;
+  ctx.font = 'bold 24px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(mood.mood.toUpperCase(), 0, -10);
+  
+  // Draw confidence bar
+  const barWidth = radius * 1.5;
+  const barHeight = 8;
+  const barY = 20;
+  
+  ctx.fillStyle = theme.border + '40';
+  ctx.fillRect(-barWidth/2, barY, barWidth, barHeight);
+  
+  ctx.fillStyle = mood.color;
+  ctx.fillRect(-barWidth/2, barY, barWidth * mood.confidence, barHeight);
+  
+  // Draw intensity rings
+  for (let i = 1; i <= 3; i++) {
+    const ringRadius = radius * (1 + i * 0.3);
+    const alpha = (1 - i * 0.3) * mood.intensity * 0.3;
+    ctx.strokeStyle = mood.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+  drawGrain();
+}
+
+function drawMoodResponsiveWaveform() {
+  const mood = window.yamnetClassifier ? window.yamnetClassifier.getCurrentMood() : { mood: 'neutral', intensity: 0.5, confidence: 0, color: '#74b9ff' };
+  
+  analyser.getByteTimeDomainData(dataArray);
+  
+  const width = canvas.width;
+  const height = canvas.height;
+  const sliceWidth = width / bufferLength;
+  
+  applyAfterglowEffect();
+  drawGrid("waveform");
+  
+  if (smoothedData.length !== bufferLength) {
+    smoothedData = new Array(bufferLength).fill(height / 2);
+  }
+  
+  const points = [];
+  let x = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    const targetY = (dataArray[i] / 128.0) * (height / 2);
+    smoothedData[i] += (targetY - smoothedData[i]) * smoothingFactor;
+    const y = smoothedData[i];
+    points.push({ x, y });
+    x += sliceWidth;
+  }
+  
+  ctx.save();
+  
+  // Mood-responsive styling
+  const moodIntensity = mood.intensity;
+  const lineWidth = 2 + moodIntensity * 6;
+  const glowIntensity = 5 + moodIntensity * 15;
+  
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = mood.color;
+  ctx.shadowBlur = glowIntensity;
+  ctx.shadowColor = mood.color;
+  
+  // Draw main waveform
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+  
+  // Draw mood-responsive overlay
+  if (moodIntensity > 0.7) {
+    ctx.strokeStyle = mood.color + '60';
+    ctx.lineWidth = lineWidth * 0.5;
+    ctx.shadowBlur = glowIntensity * 0.5;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const offset = Math.sin(i * 0.1 + performance.now() * 0.005) * 10 * moodIntensity;
+      if (i === 0) ctx.moveTo(p.x, p.y + offset);
+      else ctx.lineTo(p.x, p.y + offset);
+    });
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+  drawGrain();
+}
+
+function drawMoodResponsiveParticles() {
+  const mood = window.yamnetClassifier ? window.yamnetClassifier.getCurrentMood() : { mood: 'neutral', intensity: 0.5, confidence: 0, color: '#74b9ff' };
+  
+  // Build amplitude array using FFT
+  const amplitudeArray = new Float32Array(bufferLength);
+  analyser.getByteFrequencyData(dataArray);
+  let sum = 0;
+  let maxAmp = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    const v = dataArray[i] / 255;
+    amplitudeArray[i] = v;
+    sum += dataArray[i];
+    if (dataArray[i] > maxAmp) maxAmp = dataArray[i];
+  }
+  const avgAmp = sum / bufferLength / 255;
+  const normMax = maxAmp / 255;
+  
+  ctx.fillStyle = theme.background || "rgba(0,0,0,0.2)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  
+  const perspective = 500;
+  const baseRadius = 200;
+  const moodRadius = baseRadius * (1 + mood.intensity * 1.5);
+  
+  // Mood-responsive rotation
+  const rot = window.particleRotation || { enableX:true, enableY:true, enableZ:false, speedX:0.3, speedY:0.6, speedZ:0.2 };
+  const moodMultiplier = 1 + mood.intensity * 2;
+  const now = performance.now() / 1000;
+  const xAngle = rot.enableX ? now * rot.speedX * moodMultiplier : 0;
+  const yAngle = rot.enableY ? now * rot.speedY * moodMultiplier : 0;
+  const zAngle = rot.enableZ ? now * rot.speedZ * moodMultiplier : 0;
+  
+  const t = performance.now() / 1000;
+  
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    const ampIndex = Math.floor((i / particles.length) * bufferLength);
+    const amp = amplitudeArray[ampIndex];
+    const a = avgAmp;
+    
+    // Mood-responsive equations
+    let xEq, yEq, zEq;
+    if (mood.mood === 'energetic' || mood.mood === 'intense') {
+      xEq = Math.sin(Math.PI * p.v) * Math.cos(2 * Math.PI * p.u + t * 2);
+      yEq = Math.sin(Math.PI * p.v) * Math.sin(2 * Math.PI * p.u + t * 2);
+      zEq = Math.cos(Math.PI * p.v) + Math.sin(t * 3) * 0.5;
+    } else if (mood.mood === 'ambient' || mood.mood === 'peaceful') {
+      xEq = Math.sin(Math.PI * p.v) * Math.cos(2 * Math.PI * p.u) * (1 + Math.sin(t * 0.5) * 0.1);
+      yEq = Math.sin(Math.PI * p.v) * Math.sin(2 * Math.PI * p.u) * (1 + Math.sin(t * 0.5) * 0.1);
+      zEq = Math.cos(Math.PI * p.v) + Math.sin(t * 0.3) * 0.2;
+    } else {
+      // Default sphere with mood influence
+      xEq = Math.sin(Math.PI * p.v) * Math.cos(2 * Math.PI * p.u);
+      yEq = Math.sin(Math.PI * p.v) * Math.sin(2 * Math.PI * p.u);
+      zEq = Math.cos(Math.PI * p.v);
+    }
+    
+    const r = moodRadius * (1 + 0.5 * amp);
+    
+    // Apply rotations
+    let xR = xEq;
+    let yR = yEq * Math.cos(xAngle) - zEq * Math.sin(xAngle);
+    let zR = yEq * Math.sin(xAngle) + zEq * Math.cos(xAngle);
+    
+    const xR2 = xR * Math.cos(yAngle) + zR * Math.sin(yAngle);
+    const zR2 = -xR * Math.sin(yAngle) + zR * Math.cos(yAngle);
+    const yR2 = yR;
+    
+    const xRot = xR2 * Math.cos(zAngle) - yR2 * Math.sin(zAngle);
+    const yRot = xR2 * Math.sin(zAngle) + yR2 * Math.cos(zAngle);
+    const zRot = zR2;
+    
+    const scale = perspective / (perspective + zRot * r);
+    const size = p.size * (1 + mood.intensity * 0.5);
+    
+    // Mood-responsive color
+    const hue = mood.color.includes('#') ? mood.color : '#74b9ff';
+    ctx.fillStyle = hue;
+    ctx.beginPath();
+    ctx.arc(xRot * r * scale, yRot * r * scale, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  ctx.restore();
+  drawGrid("2dsheet");
+  drawGrain();
+}
