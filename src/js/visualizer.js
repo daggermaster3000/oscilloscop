@@ -177,6 +177,7 @@ function drawWaveform() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function drawFFT() {
@@ -198,6 +199,7 @@ function drawFFT() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function drawStereoPhase() {
@@ -241,6 +243,7 @@ function drawStereoPhase() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 analyserLeft.fftSize = 2048;
@@ -312,6 +315,7 @@ function draw3DWaveformflat() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 
@@ -376,6 +380,7 @@ function draw3DWaveformtop() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function draw3DSpectrogram() {
@@ -435,6 +440,7 @@ function draw3DSpectrogram() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function draw2DSpectrogram() {
@@ -456,7 +462,7 @@ function draw2DSpectrogram() {
     const y = height - i * barHeight;
     ctx.fillRect(width - 1, y, 1, barHeight);
   }
-
+  applyAudioReactiveFilter();
   //drawGrid("2dsheet");
   //drawGrain();
 }
@@ -513,11 +519,38 @@ function drawParticleCloud() {
   // Rotation angles
   const rot = window.particleRotation || { enableX:true, enableY:true, enableZ:false, speedX:0.3, speedY:0.6, speedZ:0.2 };
   const now = performance.now() / 1000;
-  const xAngle = rot.enableX ? now * rot.speedX : 0;
-  const yAngle = rot.enableY ? now * rot.speedY : 0;
-  const zAngle = rot.enableZ ? now * rot.speedZ : 0;
+  
+  // Audio-driven rotation
+  const audioRotSettings = window.audioRotationSettings || { enabled: false, source: 'frequency', intensity: 1.0 };
+  let audioRotationModifier = 0;
+  
+  if (audioRotSettings.enabled) {
+    if (audioRotSettings.source === 'frequency') {
+      // Use average frequency magnitude
+      audioRotationModifier = avgAmp * audioRotSettings.intensity;
+    } else {
+      // Use amplitude variation
+      audioRotationModifier = normMax * audioRotSettings.intensity;
+    }
+  }
+  
+  const xAngle = rot.enableX ? now * rot.speedX + audioRotationModifier : 0;
+  const yAngle = rot.enableY ? now * rot.speedY + audioRotationModifier * 0.8 : 0;
+  const zAngle = rot.enableZ ? now * rot.speedZ + audioRotationModifier * 0.6 : 0;
   const inertia = 1;
   const t = performance.now() / 1000;
+  
+  // Audio morphing
+  const morphSettings = window.audioMorphSettings || { enabled: false, source: 'frequency', intensity: 0.5 };
+  let morphModifier = 0;
+  
+  if (morphSettings.enabled) {
+    if (morphSettings.source === 'frequency') {
+      morphModifier = avgAmp * morphSettings.intensity;
+    } else {
+      morphModifier = normMax * morphSettings.intensity;
+    }
+  }
   for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     // map particle to amplitude bin uniformly
@@ -525,10 +558,13 @@ function drawParticleCloud() {
     const amp = amplitudeArray[ampIndex];
     const a = normAmp; // average amplitude
 
-    // evaluate parametric equations
-    const xEq = eqXFunc ? eqXFunc(p.u, p.v, t, a) : p.x;
-    const yEq = eqYFunc ? eqYFunc(p.u, p.v, t, a) : p.y;
-    const zEq = eqZFunc ? eqZFunc(p.u, p.v, t, a) : p.z;
+    // Apply morphing to the amplitude parameter
+    const morphedA = morphSettings.enabled ? a + morphModifier : a;
+
+    // evaluate parametric equations with morphed amplitude
+    const xEq = eqXFunc ? eqXFunc(p.u, p.v, t, morphedA) : p.x;
+    const yEq = eqYFunc ? eqYFunc(p.u, p.v, t, morphedA) : p.y;
+    const zEq = eqZFunc ? eqZFunc(p.u, p.v, t, morphedA) : p.z;
 
     // radius modulation by instantaneous bin amplitude
     const r = radius * (1 + 0.5 * amp);
@@ -559,6 +595,7 @@ function drawParticleCloud() {
   ctx.restore();
   drawGrid("2dsheet");
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 // --- New Modes ---
@@ -611,6 +648,7 @@ function drawFourierSeriesShape() {
   ctx.stroke();
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function drawPolygonMorph() {
@@ -655,6 +693,7 @@ function drawPolygonMorph() {
   ctx.stroke();
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 function drawHarmonicOrbitals() {
@@ -735,6 +774,7 @@ function drawHarmonicOrbitals() {
 
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
 }
 
 // --- Game of Life influenced by audio ---
@@ -822,4 +862,372 @@ function drawGameOfLife() {
   }
   ctx.restore();
   drawGrain();
+  applyAudioReactiveFilter();
+}
+
+function draw3DMesh() {
+  const settings = window.meshSettings || { responseMode: 'fft', resolution: 30, wireframe: true, filled: false };
+  const resolution = settings.resolution;
+  
+  // Build amplitude array
+  const responseMode = settings.responseMode;
+  const amplitudeArray = new Float32Array(bufferLength);
+  if (responseMode === 'signal') {
+    analyser.getByteTimeDomainData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const centered = Math.abs(dataArray[i] - 128) / 128;
+      amplitudeArray[i] = centered;
+      sum += centered;
+    }
+    var avgAmp = sum / bufferLength;
+  } else {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 255;
+      amplitudeArray[i] = v;
+      sum += dataArray[i];
+    }
+    var avgAmp = sum / bufferLength / 255;
+  }
+
+  applyAfterglowEffect();
+  
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+
+  const perspective = 500;
+  const radius = 200;
+
+  // Rotation
+  const rot = settings.rotation || { enableX: true, enableY: true, enableZ: false, speedX: 0.3, speedY: 0.6, speedZ: 0.2 };
+  const now = performance.now() / 1000;
+  const xAngle = rot.enableX ? now * rot.speedX : 0;
+  const yAngle = rot.enableY ? now * rot.speedY : 0;
+  const zAngle = rot.enableZ ? now * rot.speedZ : 0;
+  const t = now;
+
+  // Generate mesh vertices
+  const vertices = [];
+  for (let i = 0; i <= resolution; i++) {
+    const row = [];
+    for (let j = 0; j <= resolution; j++) {
+      const u = i / resolution;
+      const v = j / resolution;
+      
+      // Get audio amplitude for this vertex
+      const ampIndex = Math.floor(((i * (resolution + 1) + j) / ((resolution + 1) * (resolution + 1))) * bufferLength);
+      const amp = amplitudeArray[ampIndex];
+      const a = avgAmp;
+
+      // Evaluate parametric equations
+      const xEq = window.meshEqXFunc ? window.meshEqXFunc(u, v, t, a) : Math.sin(Math.PI * v) * Math.cos(2 * Math.PI * u);
+      const yEq = window.meshEqYFunc ? window.meshEqYFunc(u, v, t, a) : Math.sin(Math.PI * v) * Math.sin(2 * Math.PI * u);
+      const zEq = window.meshEqZFunc ? window.meshEqZFunc(u, v, t, a) : Math.cos(Math.PI * v);
+
+      // Apply rotation
+      let xR = xEq;
+      let yR = yEq * Math.cos(xAngle) - zEq * Math.sin(xAngle);
+      let zR = yEq * Math.sin(xAngle) + zEq * Math.cos(xAngle);
+      
+      const xR2 = xR * Math.cos(yAngle) + zR * Math.sin(yAngle);
+      const zR2 = -xR * Math.sin(yAngle) + zR * Math.cos(yAngle);
+      const yR2 = yR;
+      
+      const xRot = xR2 * Math.cos(zAngle) - yR2 * Math.sin(zAngle);
+      const yRot = xR2 * Math.sin(zAngle) + yR2 * Math.cos(zAngle);
+      const zRot = zR2;
+
+      // Project to 2D
+      const scale = perspective / (perspective + zRot * radius);
+      const x2d = xRot * radius * scale;
+      const y2d = yRot * radius * scale;
+
+      row.push({ x: x2d, y: y2d, z: zRot, amp: amp });
+    }
+    vertices.push(row);
+  }
+
+  // Draw filled polygons if enabled
+  if (settings.filled) {
+    for (let i = 0; i < resolution; i++) {
+      for (let j = 0; j < resolution; j++) {
+        const v1 = vertices[i][j];
+        const v2 = vertices[i + 1][j];
+        const v3 = vertices[i + 1][j + 1];
+        const v4 = vertices[i][j + 1];
+
+        // Calculate average z for depth sorting
+        const avgZ = (v1.z + v2.z + v3.z + v4.z) / 4;
+        
+        // Simple back-face culling (skip if facing away)
+        if (avgZ < -0.5) continue;
+
+        // Color based on amplitude and theme
+        const avgAmpQuad = (v1.amp + v2.amp + v3.amp + v4.amp) / 4;
+        
+        // Parse theme glow color
+        let r = 0, g = 255, b = 153; // Default green
+        if (theme.glow) {
+          const hex = theme.glow.replace('#', '');
+          if (hex.length === 6) {
+            r = parseInt(hex.substr(0, 2), 16);
+            g = parseInt(hex.substr(2, 2), 16);
+            b = parseInt(hex.substr(4, 2), 16);
+          }
+        }
+        
+        // Mix theme color with amplitude
+        const intensity = 0.3 + avgAmpQuad * 0.7;
+        const finalR = Math.floor(r * intensity);
+        const finalG = Math.floor(g * intensity);
+        const finalB = Math.floor(b * intensity);
+        const alpha = 0.7 + avgAmpQuad * 0.3;
+        
+        ctx.fillStyle = `rgba(${finalR}, ${finalG}, ${finalB}, ${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(v1.x, v1.y);
+        ctx.lineTo(v2.x, v2.y);
+        ctx.lineTo(v3.x, v3.y);
+        ctx.lineTo(v4.x, v4.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  }
+
+  // Draw wireframe if enabled
+  if (settings.wireframe) {
+    ctx.strokeStyle = theme.glow;
+    ctx.lineWidth = lineWidth;
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = theme.glow;
+
+    // Draw horizontal lines
+    for (let i = 0; i <= resolution; i++) {
+      ctx.beginPath();
+      for (let j = 0; j <= resolution; j++) {
+        const v = vertices[i][j];
+        if (j === 0) {
+          ctx.moveTo(v.x, v.y);
+        } else {
+          ctx.lineTo(v.x, v.y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    // Draw vertical lines
+    for (let j = 0; j <= resolution; j++) {
+      ctx.beginPath();
+      for (let i = 0; i <= resolution; i++) {
+        const v = vertices[i][j];
+        if (i === 0) {
+          ctx.moveTo(v.x, v.y);
+        } else {
+          ctx.lineTo(v.x, v.y);
+        }
+      }
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+  drawGrain();
+  applyAudioReactiveFilter();
+}
+
+// Audio-reactive filter system
+let lastBeatTime = 0;
+let beatDetected = false;
+
+function applyAudioReactiveFilter() {
+  const settings = window.audioFilterSettings;
+  console.log('Current filter settings:', {
+    effect: settings?.effect,
+    intensity: settings?.intensity,
+    response: settings?.response,
+    responseStrength: settings?.responseStrength
+  });
+
+  if (!settings || settings.effect === 'none') {
+    console.log('No filter or effect is none');
+    return;
+  }
+
+  // Get audio data based on response mode
+  let audioLevel = 0;
+  if (settings.response === 'frequency') {
+    analyser.getByteFrequencyData(dataArray);
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      sum += dataArray[i];
+    }
+    audioLevel = (sum / bufferLength / 255) * settings.responseStrength;
+    console.log('Frequency audio level:', audioLevel, 'Data sum:', sum, 'Buffer length:', bufferLength);
+    analyser.getByteFrequencyData(dataArray);
+    let nonZeroCount = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      if (dataArray[i] > 0) nonZeroCount++;
+    }
+    console.log(`Non-zero frequency bins: ${nonZeroCount}/${bufferLength}`);
+  } else if (settings.response === 'beat') {
+    // Simple beat detection
+    analyser.getByteFrequencyData(dataArray);
+    let bass = 0;
+    for (let i = 0; i < Math.min(10, bufferLength); i++) {
+      bass += dataArray[i];
+    }
+    bass /= Math.min(10, bufferLength);
+    const now = performance.now();
+    if (bass > 180 && now - lastBeatTime > 200) {
+      beatDetected = true;
+      lastBeatTime = now;
+    } else if (now - lastBeatTime > 100) {
+      beatDetected = false;
+    }
+    audioLevel = beatDetected ? 1.0 * settings.responseStrength : 0.2 * settings.responseStrength;
+  }
+
+  const intensity = settings.intensity * audioLevel;
+
+  // Apply selected filter effect
+  switch (settings.effect) {
+    case 'grain':
+      applyGrainFilter(intensity);
+      break;
+    case 'scanlines':
+      applyScanlinesFilter(intensity);
+      break;
+    case 'chromatic':
+      applyChromaticAberrationFilter(intensity);
+      break;
+    case 'glitch':
+      applyGlitchFilter(intensity);
+      break;
+    case 'vhs':
+      applyVHSNoiseFilter(intensity);
+      break;
+  }
+}
+
+function applyGrainFilter(intensity) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 255 * intensity;
+    data[i] += noise;     // R
+    data[i + 1] += noise; // G
+    data[i + 2] += noise; // B
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function applyScanlinesFilter(intensity) {
+  console.log('applyScanlinesFilter called with intensity:', intensity); // Debug log
+  if (intensity <= 0) return;
+  
+  ctx.save();
+  // Make scanlines more visible by increasing opacity
+  ctx.globalAlpha = 0.3 + (intensity * 0.7); // Ranges from 0.3 to 1.0
+  ctx.fillStyle = '#000000';
+  
+  // Make scanlines thicker for better visibility
+  const lineHeight = 2;
+  const gap = Math.max(1, Math.floor(4 - (intensity * 2))); // Adjust gap based on intensity
+  
+  for (let y = 0; y < canvas.height; y += lineHeight + gap) {
+    ctx.fillRect(0, y, canvas.width, lineHeight);
+  }
+  
+  // Add a subtle horizontal blur to make scanlines look more natural
+  ctx.filter = `blur(${intensity}px)`;
+  ctx.globalCompositeOperation = 'overlay';
+  ctx.globalAlpha = intensity * 0.3;
+  ctx.drawImage(canvas, 0, 0);
+  
+  ctx.restore();
+}
+
+function applyChromaticAberrationFilter(intensity) {
+  const offset = Math.floor(intensity * 8);
+  if (offset < 1) return;
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Red channel shifted left
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(tempCanvas, -offset, 0);
+  ctx.restore();
+  
+  // Green channel normal
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(tempCanvas, 0, 0);
+  ctx.restore();
+  
+  // Blue channel shifted right
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(tempCanvas, offset, 0);
+  ctx.restore();
+}
+
+function applyGlitchFilter(intensity) {
+  if (Math.random() > intensity) return;
+  
+  const sliceHeight = Math.floor(Math.random() * 20 + 5);
+  const numSlices = Math.floor(intensity * 10);
+  
+  for (let i = 0; i < numSlices; i++) {
+    const y = Math.floor(Math.random() * canvas.height);
+    const offset = (Math.random() - 0.5) * 50 * intensity;
+    
+    const imageData = ctx.getImageData(0, y, canvas.width, sliceHeight);
+    ctx.putImageData(imageData, offset, y);
+  }
+}
+
+function applyVHSNoiseFilter(intensity) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  
+  // Add horizontal noise lines
+  for (let y = 0; y < canvas.height; y++) {
+    if (Math.random() < intensity * 0.1) {
+      const noiseIntensity = Math.random() * intensity;
+      for (let x = 0; x < canvas.width; x++) {
+        const i = (y * canvas.width + x) * 4;
+        const noise = (Math.random() - 0.5) * 100 * noiseIntensity;
+        data[i] += noise;
+        data[i + 1] += noise;
+        data[i + 2] += noise;
+      }
+    }
+  }
+  
+  // Add color distortion
+  for (let i = 0; i < data.length; i += 4) {
+    if (Math.random() < intensity * 0.05) {
+      data[i] += (Math.random() - 0.5) * 50 * intensity;     // R shift
+      data[i + 1] += (Math.random() - 0.5) * 30 * intensity; // G shift
+      data[i + 2] += (Math.random() - 0.5) * 40 * intensity; // B shift
+    }
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
 }

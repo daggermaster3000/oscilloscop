@@ -26,12 +26,14 @@ themeSelect.addEventListener("change", () => {
 function updateModeSpecificControls(mode) {
   // Get control sections
   const particleControls = document.getElementById('particleControls');
+  const meshControls = document.getElementById('meshControls');
   const fourierControls = document.getElementById('fourierControls');
   const orbitalsControls = document.getElementById('orbitalsControls');
   const golControls = document.getElementById('golControls');
   
   // Hide all mode-specific controls by default
   if (particleControls) particleControls.style.display = 'none';
+  if (meshControls) meshControls.style.display = 'none';
   if (fourierControls) fourierControls.style.display = 'none';
   if (orbitalsControls) orbitalsControls.style.display = 'none';
   if (golControls) golControls.style.display = 'none';
@@ -39,6 +41,8 @@ function updateModeSpecificControls(mode) {
   // Show controls based on selected mode
   if (mode === 'Particle Cloud' && particleControls) {
     particleControls.style.display = 'block';
+  } else if (mode === '3D Mesh' && meshControls) {
+    meshControls.style.display = 'block';
   } else if (mode === 'Fourier Series Shape' && fourierControls) {
     fourierControls.style.display = 'block';
   } else if (mode === 'Harmonic Orbital Systems' && orbitalsControls) {
@@ -280,6 +284,76 @@ if (responseModeSelect) {
   });
 }
 
+// Audio-driven rotation controls
+const audioRotationInput = document.getElementById('audioRotation');
+const audioRotationSourceSelect = document.getElementById('audioRotationSource');
+const audioRotationIntensityInput = document.getElementById('audioRotationIntensity');
+const audioRotationIntensityValue = document.getElementById('audioRotationIntensityValue');
+
+window.audioRotationSettings = {
+  enabled: false,
+  source: 'frequency',
+  intensity: 1.0
+};
+
+if (audioRotationInput) {
+  audioRotationInput.addEventListener('change', () => {
+    window.audioRotationSettings.enabled = audioRotationInput.checked;
+  });
+}
+
+if (audioRotationSourceSelect) {
+  audioRotationSourceSelect.addEventListener('change', () => {
+    window.audioRotationSettings.source = audioRotationSourceSelect.value;
+  });
+}
+
+if (audioRotationIntensityInput) {
+  const updateIntensity = () => {
+    const v = parseFloat(audioRotationIntensityInput.value);
+    window.audioRotationSettings.intensity = v;
+    if (audioRotationIntensityValue) audioRotationIntensityValue.textContent = v.toFixed(1);
+  };
+  audioRotationIntensityInput.addEventListener('input', updateIntensity);
+  audioRotationIntensityInput.addEventListener('change', updateIntensity);
+  updateIntensity();
+}
+
+// Audio morphing controls
+const audioMorphInput = document.getElementById('audioMorph');
+const audioMorphSourceSelect = document.getElementById('audioMorphSource');
+const audioMorphIntensityInput = document.getElementById('audioMorphIntensity');
+const audioMorphIntensityValue = document.getElementById('audioMorphIntensityValue');
+
+window.audioMorphSettings = {
+  enabled: false,
+  source: 'frequency',
+  intensity: 0.5
+};
+
+if (audioMorphInput) {
+  audioMorphInput.addEventListener('change', () => {
+    window.audioMorphSettings.enabled = audioMorphInput.checked;
+  });
+}
+
+if (audioMorphSourceSelect) {
+  audioMorphSourceSelect.addEventListener('change', () => {
+    window.audioMorphSettings.source = audioMorphSourceSelect.value;
+  });
+}
+
+if (audioMorphIntensityInput) {
+  const updateIntensity = () => {
+    const v = parseFloat(audioMorphIntensityInput.value);
+    window.audioMorphSettings.intensity = v;
+    if (audioMorphIntensityValue) audioMorphIntensityValue.textContent = v.toFixed(2);
+  };
+  audioMorphIntensityInput.addEventListener('input', updateIntensity);
+  audioMorphIntensityInput.addEventListener('change', updateIntensity);
+  updateIntensity();
+}
+
 // fourier settings
 window.fourierSettings = {
   harmonics: fourierHarmonicsInput ? parseInt(fourierHarmonicsInput.value, 10) : 16,
@@ -447,6 +521,203 @@ bindRotationControl(rotateXInput, rotateXSpeedInput, rotateXSpeedValue, 'enableX
 bindRotationControl(rotateYInput, rotateYSpeedInput, rotateYSpeedValue, 'enableY', 'speedY');
 bindRotationControl(rotateZInput, rotateZSpeedInput, rotateZSpeedValue, 'enableZ', 'speedZ');
 
+// --- 3D Mesh Controls ---
+const meshResponseSelect = document.getElementById('meshResponse');
+const meshResolutionInput = document.getElementById('meshResolution');
+const meshResolutionValue = document.getElementById('meshResolutionValue');
+const meshWireframeInput = document.getElementById('meshWireframe');
+const meshFilledInput = document.getElementById('meshFilled');
+const meshEqXInput = document.getElementById('meshEqX');
+const meshEqYInput = document.getElementById('meshEqY');
+const meshEqZInput = document.getElementById('meshEqZ');
+const meshEqPresetSelect = document.getElementById('meshEquationPreset');
+const meshEqResetBtn = document.getElementById('meshEquationResetBtn');
+const meshRotateXInput = document.getElementById('meshRotateX');
+const meshRotateYInput = document.getElementById('meshRotateY');
+const meshRotateZInput = document.getElementById('meshRotateZ');
+const meshRotateXSpeedInput = document.getElementById('meshRotateXSpeed');
+const meshRotateYSpeedInput = document.getElementById('meshRotateYSpeed');
+const meshRotateZSpeedInput = document.getElementById('meshRotateZSpeed');
+const meshRotateXSpeedValue = document.getElementById('meshRotateXSpeedValue');
+const meshRotateYSpeedValue = document.getElementById('meshRotateYSpeedValue');
+const meshRotateZSpeedValue = document.getElementById('meshRotateZSpeedValue');
+
+// Mesh state
+window.meshSettings = {
+  responseMode: 'fft',
+  resolution: 30,
+  wireframe: true,
+  filled: false,
+  rotation: { enableX: true, enableY: true, enableZ: false, speedX: 0.3, speedY: 0.6, speedZ: 0.2 }
+};
+
+window.meshEqXFunc = (u, v, t, a) => Math.sin(Math.PI * v) * Math.cos(2 * Math.PI * u);
+window.meshEqYFunc = (u, v, t, a) => Math.sin(Math.PI * v) * Math.sin(2 * Math.PI * u);
+window.meshEqZFunc = (u, v, t, a) => Math.cos(Math.PI * v);
+
+function compileMeshEquation(expr, fallback) {
+  try {
+    const fn = new Function('u', 'v', 't', 'a', `return (${expr});`);
+    const test = fn(0.3, 0.7, 0.0, 0.5);
+    if (!Number.isFinite(test)) return fallback;
+    return fn;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function updateMeshEquationsFromUI() {
+  if (!meshEqXInput || !meshEqYInput || !meshEqZInput) return;
+  window.meshEqXFunc = compileMeshEquation(meshEqXInput.value, window.meshEqXFunc);
+  window.meshEqYFunc = compileMeshEquation(meshEqYInput.value, window.meshEqYFunc);
+  window.meshEqZFunc = compileMeshEquation(meshEqZInput.value, window.meshEqZFunc);
+}
+
+if (meshEqXInput) meshEqXInput.addEventListener('change', updateMeshEquationsFromUI);
+if (meshEqYInput) meshEqYInput.addEventListener('change', updateMeshEquationsFromUI);
+if (meshEqZInput) meshEqZInput.addEventListener('change', updateMeshEquationsFromUI);
+
+function applyMeshPreset(name) {
+  if (!meshEqXInput || !meshEqYInput || !meshEqZInput) return;
+  if (name === 'sphere') {
+    meshEqXInput.value = 'Math.sin(Math.PI*v)*Math.cos(2*Math.PI*u)';
+    meshEqYInput.value = 'Math.sin(Math.PI*v)*Math.sin(2*Math.PI*u)';
+    meshEqZInput.value = 'Math.cos(Math.PI*v)';
+  } else if (name === 'torus') {
+    meshEqXInput.value = '(1+0.4*Math.cos(2*Math.PI*v))*Math.cos(2*Math.PI*u)';
+    meshEqYInput.value = '(1+0.4*Math.cos(2*Math.PI*v))*Math.sin(2*Math.PI*u)';
+    meshEqZInput.value = '0.4*Math.sin(2*Math.PI*v)';
+  } else if (name === 'wave') {
+    meshEqXInput.value = '(u-0.5)*2';
+    meshEqYInput.value = '(v-0.5)*2';
+    meshEqZInput.value = '0.3*Math.sin(4*Math.PI*u + t)*Math.cos(4*Math.PI*v + t)*a';
+  } else if (name === 'ripple') {
+    meshEqXInput.value = '(u-0.5)*2';
+    meshEqYInput.value = '(v-0.5)*2';
+    meshEqZInput.value = '0.3*Math.sin(8*Math.PI*Math.sqrt((u-0.5)**2 + (v-0.5)**2) - t*2)*a';
+  } else if (name === 'terrain') {
+    meshEqXInput.value = '(u-0.5)*2';
+    meshEqYInput.value = '(v-0.5)*2';
+    meshEqZInput.value = '0.2*(Math.sin(6*Math.PI*u)*Math.cos(6*Math.PI*v) + Math.sin(3*Math.PI*u+t)*a)';
+  } else if (name === 'morphSphere') {
+    meshEqXInput.value = 'Math.sin(Math.PI*v)*Math.cos(2*Math.PI*u)*(1 + 0.8*a*Math.sin(t*3))';
+    meshEqYInput.value = 'Math.sin(Math.PI*v)*Math.sin(2*Math.PI*u)*(1 + 0.8*a*Math.sin(t*3))';
+    meshEqZInput.value = 'Math.cos(Math.PI*v)*(1 + 0.8*a*Math.sin(t*3))';
+  } else if (name === 'morphTorus') {
+    meshEqXInput.value = '(1+0.4*Math.cos(2*Math.PI*v)*(1+1.2*a))*Math.cos(2*Math.PI*u)';
+    meshEqYInput.value = '(1+0.4*Math.cos(2*Math.PI*v)*(1+1.2*a))*Math.sin(2*Math.PI*u)';
+    meshEqZInput.value = '0.4*Math.sin(2*Math.PI*v)*(1+0.8*a*Math.cos(t*4))';
+  } else if (name === 'morphWave') {
+    meshEqXInput.value = '(u-0.5)*2*(1+0.5*a*Math.sin(t*2))';
+    meshEqYInput.value = '(v-0.5)*2*(1+0.5*a*Math.cos(t*2))';
+    meshEqZInput.value = '0.6*Math.sin(4*Math.PI*u + t*3)*Math.cos(4*Math.PI*v + t*3)*a + 0.4*Math.sin(t*6)*a';
+  }
+  updateMeshEquationsFromUI();
+}
+
+if (meshEqPresetSelect) {
+  meshEqPresetSelect.addEventListener('change', () => applyMeshPreset(meshEqPresetSelect.value));
+}
+if (meshEqResetBtn) {
+  meshEqResetBtn.addEventListener('click', () => applyMeshPreset(meshEqPresetSelect ? meshEqPresetSelect.value : 'sphere'));
+}
+
+if (meshResponseSelect) {
+  meshResponseSelect.addEventListener('change', () => {
+    window.meshSettings.responseMode = meshResponseSelect.value;
+  });
+}
+
+if (meshResolutionInput) {
+  const updateRes = () => {
+    const v = parseInt(meshResolutionInput.value);
+    window.meshSettings.resolution = v;
+    if (meshResolutionValue) meshResolutionValue.textContent = String(v);
+  };
+  meshResolutionInput.addEventListener('input', updateRes);
+  meshResolutionInput.addEventListener('change', updateRes);
+  updateRes();
+}
+
+if (meshWireframeInput) {
+  meshWireframeInput.addEventListener('change', () => {
+    window.meshSettings.wireframe = meshWireframeInput.checked;
+  });
+}
+
+if (meshFilledInput) {
+  meshFilledInput.addEventListener('change', () => {
+    window.meshSettings.filled = meshFilledInput.checked;
+  });
+}
+
+function bindMeshRotationControl(chk, speedInput, valueLabel, keyEnable, keySpeed) {
+  if (!chk || !speedInput) return;
+  const update = () => {
+    window.meshSettings.rotation[keyEnable] = chk.checked;
+    const sp = parseFloat(speedInput.value || '0');
+    window.meshSettings.rotation[keySpeed] = Number.isFinite(sp) ? sp : 0;
+    if (valueLabel) valueLabel.textContent = String(window.meshSettings.rotation[keySpeed].toFixed(2));
+  };
+  chk.addEventListener('change', update);
+  speedInput.addEventListener('input', update);
+  speedInput.addEventListener('change', update);
+  update();
+}
+
+bindMeshRotationControl(meshRotateXInput, meshRotateXSpeedInput, meshRotateXSpeedValue, 'enableX', 'speedX');
+bindMeshRotationControl(meshRotateYInput, meshRotateYSpeedInput, meshRotateYSpeedValue, 'enableY', 'speedY');
+bindMeshRotationControl(meshRotateZInput, meshRotateZSpeedInput, meshRotateZSpeedValue, 'enableZ', 'speedZ');
+
+// --- Audio-Reactive Filters ---
+const filterEffectSelect = document.getElementById('filterEffect');
+const filterIntensityInput = document.getElementById('filterIntensity');
+const filterIntensityValue = document.getElementById('filterIntensityValue');
+const filterResponseSelect = document.getElementById('filterResponse');
+const filterResponseStrengthInput = document.getElementById('filterResponseStrength');
+const filterResponseStrengthValue = document.getElementById('filterResponseStrengthValue');
+
+window.audioFilterSettings = {
+  effect: 'none',
+  intensity: 0.5,
+  response: 'frequency',
+  responseStrength: 1.0
+};
+
+if (filterEffectSelect) {
+  filterEffectSelect.addEventListener('change', () => {
+    window.audioFilterSettings.effect = filterEffectSelect.value;
+  });
+}
+
+if (filterIntensityInput) {
+  const updateIntensity = () => {
+    const v = parseFloat(filterIntensityInput.value);
+    window.audioFilterSettings.intensity = v;
+    if (filterIntensityValue) filterIntensityValue.textContent = v.toFixed(2);
+  };
+  filterIntensityInput.addEventListener('input', updateIntensity);
+  filterIntensityInput.addEventListener('change', updateIntensity);
+  updateIntensity();
+}
+
+if (filterResponseSelect) {
+  filterResponseSelect.addEventListener('change', () => {
+    window.audioFilterSettings.response = filterResponseSelect.value;
+  });
+}
+
+if (filterResponseStrengthInput) {
+  const updateStrength = () => {
+    const v = parseFloat(filterResponseStrengthInput.value);
+    window.audioFilterSettings.responseStrength = v;
+    if (filterResponseStrengthValue) filterResponseStrengthValue.textContent = v.toFixed(1);
+  };
+  filterResponseStrengthInput.addEventListener('input', updateStrength);
+  filterResponseStrengthInput.addEventListener('change', updateStrength);
+  updateStrength();
+}
+
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
@@ -472,6 +743,9 @@ function animate() {
         break;
     case "Particle Cloud":
       drawParticleCloud();
+        break;
+    case "3D Mesh":
+      draw3DMesh();
         break;
     case "Fourier Series Shape":
       drawFourierSeriesShape();

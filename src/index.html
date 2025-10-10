@@ -100,6 +100,7 @@
           <option value="3D Spectrogram">3D spectrogram</option>
           <option value="2D Spectrogram">2D spectrogram</option>
           <option value="Particle Cloud">Particle Cloud</option>
+          <option value="3D Mesh">3D Mesh</option>
           <option value="Fourier Series Shape">Fourier Series Shape</option>
           <option value="Polygon Morph">Polygon Morph</option>
           <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
@@ -110,6 +111,39 @@
       <div class="control-section">
         <h3>Adjustments</h3>
         <div id="knobControls"></div>
+      </div>
+
+      <div class="control-section">
+        <h3>Audio-Reactive Filters</h3>
+        <label>
+          Filter Effect:
+          <select id="filterEffect">
+            <option value="none">None</option>
+            <option value="grain">Grain</option>
+            <option value="scanlines">Scanlines</option>
+            <option value="chromatic">Chromatic Aberration</option>
+            <option value="glitch">Glitch</option>
+            <option value="vhs">VHS Noise</option>
+          </select>
+        </label>
+        <label>
+          Filter Intensity:
+          <input type="range" id="filterIntensity" min="0" max="1" step="0.05" value="0.5">
+          <span id="filterIntensityValue">0.50</span>
+        </label>
+        <label>
+          Audio Response:
+          <select id="filterResponse">
+            <option value="frequency">Frequency (FFT)</option>
+            <option value="amplitude">Amplitude (Time-domain)</option>
+            <option value="beat">Beat Detection</option>
+          </select>
+        </label>
+        <label>
+          Response Strength:
+          <input type="range" id="filterResponseStrength" min="0" max="2" step="0.1" value="1.0">
+          <span id="filterResponseStrengthValue">1.0</span>
+        </label>
       </div>
 
       <div class="control-section" id="particleControls">
@@ -194,6 +228,127 @@
               Rotate Z
               <input type="range" id="rotateZSpeed" min="-2" max="2" step="0.01" value="0.20">
               <span id="rotateZSpeedValue">0.20</span> rad/s
+            </label>
+            <hr style="border: 1px solid rgba(255,255,255,0.2); margin: 10px 0;">
+            <label>
+              <input type="checkbox" id="audioRotation">
+              Audio-Driven Rotation
+            </label>
+            <label>
+              Rotation Source:
+              <select id="audioRotationSource">
+                <option value="frequency">Frequency (FFT)</option>
+                <option value="amplitude">Amplitude (Time-domain)</option>
+              </select>
+            </label>
+            <label>
+              Rotation Intensity:
+              <input type="range" id="audioRotationIntensity" min="0" max="5" step="0.1" value="1.0">
+              <span id="audioRotationIntensityValue">1.0</span>
+            </label>
+          </div>
+        </details>
+
+        <details id="morphDetails">
+          <summary>Audio Morphing</summary>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>
+              <input type="checkbox" id="audioMorph">
+              Enable Audio Morphing
+            </label>
+            <label>
+              Morph Source:
+              <select id="audioMorphSource">
+                <option value="frequency">Frequency (FFT)</option>
+                <option value="amplitude">Amplitude (Time-domain)</option>
+              </select>
+            </label>
+            <label>
+              Morph Intensity:
+              <input type="range" id="audioMorphIntensity" min="0" max="2" step="0.05" value="0.5">
+              <span id="audioMorphIntensityValue">0.5</span>
+            </label>
+            <small>Shape morphs by modulating equation parameters with audio</small>
+          </div>
+        </details>
+      </div>
+
+      <div class="control-section" id="meshControls">
+        <h3>3D Mesh</h3>
+        <label>
+          Audio Response:
+          <select id="meshResponse">
+            <option value="fft">Frequency (FFT)</option>
+            <option value="signal">Signal (Time-domain)</option>
+          </select>
+        </label>
+        <label>
+          Mesh Resolution:
+          <input type="range" id="meshResolution" min="10" max="100" step="5" value="30">
+          <span id="meshResolutionValue">30</span>
+        </label>
+        <label>
+          <input type="checkbox" id="meshWireframe" checked>
+          Wireframe Mode
+        </label>
+        <label>
+          <input type="checkbox" id="meshFilled">
+          Filled Polygons
+        </label>
+
+        <details id="meshEquationDetails">
+          <summary>Mesh Equations (x(u,v,t,a), y(u,v,t,a), z(u,v,t,a))</summary>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>
+              Preset Shape:
+              <select id="meshEquationPreset">
+                <option value="sphere">Sphere</option>
+                <option value="torus">Torus</option>
+                <option value="wave">Wave Surface</option>
+                <option value="ripple">Ripple</option>
+                <option value="terrain">Terrain</option>
+                <option value="morphSphere">Morph: Pulsing Sphere</option>
+                <option value="morphTorus">Morph: Breathing Torus</option>
+                <option value="morphWave">Morph: Wave Distortion</option>
+              </select>
+              <button class="retro-btn" id="meshEquationResetBtn">Reset</button>
+            </label>
+            <small>u ∈ [0,1], v ∈ [0,1], t = seconds, a = avg amplitude [0,1]</small>
+            <label>
+              x(u,v,t,a):
+              <input type="text" id="meshEqX" value="Math.sin(Math.PI*v)*Math.cos(2*Math.PI*u)">
+            </label>
+            <label>
+              y(u,v,t,a):
+              <input type="text" id="meshEqY" value="Math.sin(Math.PI*v)*Math.sin(2*Math.PI*u)">
+            </label>
+            <label>
+              z(u,v,t,a):
+              <input type="text" id="meshEqZ" value="Math.cos(Math.PI*v)">
+            </label>
+          </div>
+        </details>
+
+        <details id="meshRotationDetails">
+          <summary>Rotation</summary>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>
+              <input type="checkbox" id="meshRotateX" checked>
+              Rotate X
+              <input type="range" id="meshRotateXSpeed" min="-2" max="2" step="0.01" value="0.30">
+              <span id="meshRotateXSpeedValue">0.30</span> rad/s
+            </label>
+            <label>
+              <input type="checkbox" id="meshRotateY" checked>
+              Rotate Y
+              <input type="range" id="meshRotateYSpeed" min="-2" max="2" step="0.01" value="0.60">
+              <span id="meshRotateYSpeedValue">0.60</span> rad/s
+            </label>
+            <label>
+              <input type="checkbox" id="meshRotateZ">
+              Rotate Z
+              <input type="range" id="meshRotateZSpeed" min="-2" max="2" step="0.01" value="0.20">
+              <span id="meshRotateZSpeedValue">0.20</span> rad/s
             </label>
           </div>
         </details>
@@ -384,6 +539,34 @@
             rotXS: (document.getElementById('rotateXSpeed')||{}).value,
             rotYS: (document.getElementById('rotateYSpeed')||{}).value,
             rotZS: (document.getElementById('rotateZSpeed')||{}).value,
+            // audio rotation
+            aRot: (document.getElementById('audioRotation')||{}).checked,
+            aRotSrc: (document.getElementById('audioRotationSource')||{}).value,
+            aRotInt: (document.getElementById('audioRotationIntensity')||{}).value,
+            // audio morph
+            aMorph: (document.getElementById('audioMorph')||{}).checked,
+            aMorphSrc: (document.getElementById('audioMorphSource')||{}).value,
+            aMorphInt: (document.getElementById('audioMorphIntensity')||{}).value,
+            // mesh
+            mResp: (document.getElementById('meshResponse')||{}).value,
+            mRes: (document.getElementById('meshResolution')||{}).value,
+            mWire: (document.getElementById('meshWireframe')||{}).checked,
+            mFill: (document.getElementById('meshFilled')||{}).checked,
+            mEqPreset: (document.getElementById('meshEquationPreset')||{}).value,
+            mEqX: (document.getElementById('meshEqX')||{}).value,
+            mEqY: (document.getElementById('meshEqY')||{}).value,
+            mEqZ: (document.getElementById('meshEqZ')||{}).value,
+            mRotX: (document.getElementById('meshRotateX')||{}).checked,
+            mRotY: (document.getElementById('meshRotateY')||{}).checked,
+            mRotZ: (document.getElementById('meshRotateZ')||{}).checked,
+            mRotXS: (document.getElementById('meshRotateXSpeed')||{}).value,
+            mRotYS: (document.getElementById('meshRotateYSpeed')||{}).value,
+            mRotZS: (document.getElementById('meshRotateZSpeed')||{}).value,
+            // filters
+            fEff: (document.getElementById('filterEffect')||{}).value,
+            fInt: (document.getElementById('filterIntensity')||{}).value,
+            fResp: (document.getElementById('filterResponse')||{}).value,
+            fRespStr: (document.getElementById('filterResponseStrength')||{}).value,
             // fourier
             fH: (document.getElementById('fourierHarmonics')||{}).value,
             fC: (document.getElementById('fourierContribution')||{}).value,
@@ -412,6 +595,12 @@
         [
           'particleResponse','particleCount','particleSize','equationPreset','eqX','eqY','eqZ',
           'rotatePreset','rotateX','rotateY','rotateZ','rotateXSpeed','rotateYSpeed','rotateZSpeed',
+          'audioRotation','audioRotationSource','audioRotationIntensity',
+          'audioMorph','audioMorphSource','audioMorphIntensity',
+          'meshResponse','meshResolution','meshWireframe','meshFilled','meshEquationPreset',
+          'meshEqX','meshEqY','meshEqZ','meshRotateX','meshRotateY','meshRotateZ',
+          'meshRotateXSpeed','meshRotateYSpeed','meshRotateZSpeed',
+          'filterEffect','filterIntensity','filterResponse','filterResponseStrength',
           'fourierHarmonics','fourierContribution',
           'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin',
           'golCellSize','golReseed','golBirthBoost','golSurvivalBoost'
@@ -454,6 +643,30 @@
         if (params.has('rotXS')) (document.getElementById('rotateXSpeed')||{}).value = params.get('rotXS');
         if (params.has('rotYS')) (document.getElementById('rotateYSpeed')||{}).value = params.get('rotYS');
         if (params.has('rotZS')) (document.getElementById('rotateZSpeed')||{}).value = params.get('rotZS');
+        if (params.has('aRot')) (document.getElementById('audioRotation')||{}).checked = params.get('aRot') === 'true';
+        if (params.has('aRotSrc')) (document.getElementById('audioRotationSource')||{}).value = params.get('aRotSrc');
+        if (params.has('aRotInt')) (document.getElementById('audioRotationIntensity')||{}).value = params.get('aRotInt');
+        if (params.has('aMorph')) (document.getElementById('audioMorph')||{}).checked = params.get('aMorph') === 'true';
+        if (params.has('aMorphSrc')) (document.getElementById('audioMorphSource')||{}).value = params.get('aMorphSrc');
+        if (params.has('aMorphInt')) (document.getElementById('audioMorphIntensity')||{}).value = params.get('aMorphInt');
+        if (params.has('mResp')) (document.getElementById('meshResponse')||{}).value = params.get('mResp');
+        if (params.has('mRes')) (document.getElementById('meshResolution')||{}).value = params.get('mRes');
+        if (params.has('mWire')) (document.getElementById('meshWireframe')||{}).checked = params.get('mWire') === 'true';
+        if (params.has('mFill')) (document.getElementById('meshFilled')||{}).checked = params.get('mFill') === 'true';
+        if (params.has('mEqPreset')) (document.getElementById('meshEquationPreset')||{}).value = params.get('mEqPreset');
+        if (params.has('mEqX')) (document.getElementById('meshEqX')||{}).value = params.get('mEqX');
+        if (params.has('mEqY')) (document.getElementById('meshEqY')||{}).value = params.get('mEqY');
+        if (params.has('mEqZ')) (document.getElementById('meshEqZ')||{}).value = params.get('mEqZ');
+        if (params.has('mRotX')) (document.getElementById('meshRotateX')||{}).checked = params.get('mRotX') === 'true';
+        if (params.has('mRotY')) (document.getElementById('meshRotateY')||{}).checked = params.get('mRotY') === 'true';
+        if (params.has('mRotZ')) (document.getElementById('meshRotateZ')||{}).checked = params.get('mRotZ') === 'true';
+        if (params.has('mRotXS')) (document.getElementById('meshRotateXSpeed')||{}).value = params.get('mRotXS');
+        if (params.has('mRotYS')) (document.getElementById('meshRotateYSpeed')||{}).value = params.get('mRotYS');
+        if (params.has('mRotZS')) (document.getElementById('meshRotateZSpeed')||{}).value = params.get('mRotZS');
+        if (params.has('fEff')) (document.getElementById('filterEffect')||{}).value = params.get('fEff');
+        if (params.has('fInt')) (document.getElementById('filterIntensity')||{}).value = params.get('fInt');
+        if (params.has('fResp')) (document.getElementById('filterResponse')||{}).value = params.get('fResp');
+        if (params.has('fRespStr')) (document.getElementById('filterResponseStrength')||{}).value = params.get('fRespStr');
         if (params.has('fH')) (document.getElementById('fourierHarmonics')||{}).value = params.get('fH');
         if (params.has('fC')) (document.getElementById('fourierContribution')||{}).value = params.get('fC');
         if (params.has('oPaths')) (document.getElementById('orbitalsShowPaths')||{}).checked = params.get('oPaths') === 'true';
@@ -470,7 +683,14 @@
         // Trigger listeners to ensure state sync
         ['themeSelect','displayMode','particleResponse','particleCount','particleSize',
          'equationPreset','eqX','eqY','eqZ','rotatePreset','rotateX','rotateY','rotateZ',
-         'rotateXSpeed','rotateYSpeed','rotateZSpeed','fourierHarmonics','fourierContribution',
+         'rotateXSpeed','rotateYSpeed','rotateZSpeed',
+         'audioRotation','audioRotationSource','audioRotationIntensity',
+         'audioMorph','audioMorphSource','audioMorphIntensity',
+         'meshResponse','meshResolution','meshWireframe','meshFilled','meshEquationPreset',
+         'meshEqX','meshEqY','meshEqZ','meshRotateX','meshRotateY','meshRotateZ',
+         'meshRotateXSpeed','meshRotateYSpeed','meshRotateZSpeed',
+         'filterEffect','filterIntensity','filterResponse','filterResponseStrength',
+         'fourierHarmonics','fourierContribution',
          'orbitalsShowPaths','orbitalsPlanetSize','orbitals3D','orbitalsTilt','orbitalsDepth','orbitalsSpin']
          .concat(['golCellSize','golReseed','golBirthBoost','golSurvivalBoost'])
           .forEach(id => {
