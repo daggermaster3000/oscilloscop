@@ -74,6 +74,10 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--ui-border, lime);
   box-shadow: 0 0 6px var(--ui-glow, #00FF99);
 }
+.flash {
+  box-shadow: 0 0 15px 5px rgba(0, 255, 153, 0.7);
+  transition: box-shadow 0.5s ease;
+}
 
 #afterglowControl {
   width: 100%;

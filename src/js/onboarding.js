@@ -14,8 +14,10 @@ class Onboarding {
           content: "Start by selecting an audio input source. You can upload an audio file or use your microphone/audio interface for live visualization.",
           target: "#inputSource",
           position: "right",
-          highlight: true
+          highlight: true,
+          
         },
+        
         {
           title: "Upload Audio or Connect Mic",
           content: "If you selected 'Audio File', upload a file here. If you chose 'Microphone', select your audio device and grant permission when prompted.<br><br><strong>Pro Tip:</strong> To route audio from a DAW (like Logic Pro) while keeping speaker output, check out <a href='https://github.com/ExistentialAudio/BlackHole/wiki/Multi-Output-Device' target='_blank' style='color: #00FF99; text-decoration: underline;'>this BlackHole setup guide</a>.",
@@ -49,8 +51,24 @@ class Onboarding {
           content: "Each display mode has unique controls that appear when selected. Try Particle Cloud for 3D parametric equations, or Game of Life for cellular automata tuning!",
           target: "#displayMode",
           position: "right",
-          highlight: true
+          highlight: true,
+        //   action: () => setTimeout(() => {
+        //     const select = document.getElementById('displayMode');
+        //     if (select) {
+        //       select.value = '3D Mesh';
+        //       select.dispatchEvent(new Event('change'));
+        //       select.classList.add('flash'); // Custom CSS animation
+        //       setTimeout(() => select.classList.remove('flash'), 1000);
+        //     }
+        //   }, 300)
         },
+        {
+            title: "Audio Reactive Filters",
+            content: "Use audio reactive filters to add more intensity to the visualizations",
+            target: '#filterEffect',
+            position: "center",
+            highlight: true,
+          },
         {
           title: "Share Your Settings",
           content: "Use 'Copy Settings URL' to share your exact configuration with others. The URL preserves all your settings including equations and parameters.",
@@ -112,6 +130,15 @@ class Onboarding {
   
       this.currentStep = stepIndex;
       const step = this.steps[stepIndex];
+    
+      // 🟢 Execute step action if defined
+      if (typeof step.action === 'function') {
+        try {
+          step.action();
+        } catch (err) {
+          console.warn('Onboarding step action failed:', err);
+        }
+      }
   
       // Update tooltip content
       this.tooltip.innerHTML = `

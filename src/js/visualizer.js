@@ -1034,6 +1034,7 @@ function draw3DMesh() {
   }
 
   ctx.restore();
+  drawGrid("3D Mesh");
   drawGrain();
   applyAudioReactiveFilter();
 }
@@ -1065,13 +1066,13 @@ function applyAudioReactiveFilter() {
       sum += dataArray[i];
     }
     audioLevel = (sum / bufferLength / 255) * settings.responseStrength;
-    console.log('Frequency audio level:', audioLevel, 'Data sum:', sum, 'Buffer length:', bufferLength);
+    
     analyser.getByteFrequencyData(dataArray);
     let nonZeroCount = 0;
     for (let i = 0; i < bufferLength; i++) {
       if (dataArray[i] > 0) nonZeroCount++;
     }
-    console.log(`Non-zero frequency bins: ${nonZeroCount}/${bufferLength}`);
+    
   } else if (settings.response === 'beat') {
     // Simple beat detection
     analyser.getByteFrequencyData(dataArray);

@@ -711,7 +711,7 @@ if (filterResponseStrengthInput) {
   const updateStrength = () => {
     const v = parseFloat(filterResponseStrengthInput.value);
     window.audioFilterSettings.responseStrength = v;
-    if (filterResponseStrengthValue) filterResponseStrengthValue.textContent = v.toFixed(1);
+    if (filterResponseStrengthValue) filterResponseStrengthValue.textContent = v.toFixed(2);
   };
   filterResponseStrengthInput.addEventListener('input', updateStrength);
   filterResponseStrengthInput.addEventListener('change', updateStrength);
