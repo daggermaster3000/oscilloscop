@@ -1,6 +1,6 @@
 html, body {
   margin: 0;
-  background: black;
+  
   overflow: hidden;
   font-family: monospace;
 }
@@ -9,6 +9,15 @@ canvas {
   display: block;
 }
 
+h1 {
+  color: var(--ui-label, lime);
+  margin: 0 0 15px 0;
+  font-size: 5em;
+}
+header {
+  position: relative;
+  display: center;
+}
 #controls {
   position: absolute;
   top: 10px;
@@ -340,3 +349,61 @@ input[type="range"]::-moz-range-thumb {
     flex: 1;
   }
 } 
+
+/* Retro window header and buttons */
+    #controls { user-select: none; }
+    #controls.window-collapsed .window-body { display: none; }
+    .window-header {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0, 0, 0, 0.9);
+      cursor: move;
+    }
+    .window-title { font-weight: bold; }
+    .window-spacer { flex: 1; }
+    .retro-btn {
+      background: black; color: lime; border: 1px solid lime; padding: 2px 8px;
+      cursor: pointer;
+    }
+    .retro-btn a{
+      background: rgba(0, 0, 0, 0); color: lime; border: 1px solid lime; padding: 2px 8px;
+      cursor: pointer;
+    }
+    .retro-btn:active { background: #002000; }
+
+    /* Instructions modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .modal {
+      background: rgba(0,0,0,0.95); color: rgb(255, 255, 255); border: 1px solid rgb(255, 255, 255); width: 520px;
+      max-width: calc(100% - 32px);
+    }
+    .home-text{
+      color: rgb(255, 255, 255);  width: 520px;
+      max-width: calc(100% - 32px);
+      text-align: center;
+      font-size: 18px;
+    }
+    .modal header { border-bottom: 1px solid rgb(255, 255, 255); padding: 8px; font-weight: bold; }
+    .modal .content { padding: 12px; line-height: 1.4; }
+    .modal footer { padding: 8px; border-top: 1px solid rgb(255, 255, 255); text-align: right; }
+    li { color: white;}
+
+    .navbar a{
+      color: rgb(255, 255, 255);
+      text-align: center;
+      margin: 20px 10px 10px 10px;
+    }
+    .navbar a:hover{
+      color: lime;
+      text-align: center;
+      margin: 20px 10px 10px 10px;
+    }
+
+    .navbar{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      align-content: center;
+    }

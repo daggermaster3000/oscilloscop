@@ -1045,15 +1045,9 @@ let beatDetected = false;
 
 function applyAudioReactiveFilter() {
   const settings = window.audioFilterSettings;
-  console.log('Current filter settings:', {
-    effect: settings?.effect,
-    intensity: settings?.intensity,
-    response: settings?.response,
-    responseStrength: settings?.responseStrength
-  });
-
+  
   if (!settings || settings.effect === 'none') {
-    console.log('No filter or effect is none');
+    //console.log('No filter or effect is none');
     return;
   }
 

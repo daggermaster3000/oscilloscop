@@ -5,7 +5,7 @@ class Onboarding {
       this.steps = [
         {
           title: "Welcome to Oscilloscop. 🎵",
-          content: "This is a powerful audio visualization tool with multiple display modes and themes. Let's take a quick tour!",
+          content: "This is a fun audio visualization tool with multiple display modes and themes. Let's take a quick tour!",
           target: null,
           position: "center"
         },
