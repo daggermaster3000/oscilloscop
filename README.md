@@ -1,4 +1,4 @@
-# Customizable Oscilloscope
+# Oscilloscop.
 
 A web-based oscilloscope visualization tool that can display audio input from either a file or microphone/audio interface. The oscilloscope features multiple visualization modes and themes for a customizable experience.
 
