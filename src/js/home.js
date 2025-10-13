@@ -19,23 +19,86 @@ function resizeCanvas() {
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-// create web audio api context
-const audioCtx = new AudioContext();
+// === FakeAudioContext.js ===
+// Drop-in replacement for AudioContext for visual-only use
 
-// create Oscillator node
+class FakeAnalyserNode {
+  constructor(options = {}) {
+    this.fftSize = options.fftSize || 2048;
+    this.smoothingTimeConstant = options.smoothingTimeConstant || 0.8;
+    this.frequencyBinCount = this.fftSize / 2;
+    this.dataArray = new Uint8Array(this.frequencyBinCount);
+  }
+
+  // Fill data with fake oscillating signal
+  getByteTimeDomainData(array) {
+    for (let i = 0; i < array.length; i++) {
+      array[i] = 128 + 127 * Math.sin((Date.now() / 40 + i) * 0.05);
+    }
+  }
+
+  getByteFrequencyData(array) {
+    for (let i = 0; i < array.length; i++) {
+      array[i] = Math.floor(
+        128 + 128 * Math.sin((Date.now() / 60 + i) * 0.1 + Math.random() * 0.3)
+      );
+    }
+  }
+
+  connect() { return this; }
+}
+
+class FakeGainNode {
+  constructor() { this.gain = { value: 1 }; }
+  connect() { return this; }
+}
+
+class FakeOscillatorNode {
+  constructor() {
+    this.type = "sine";
+    this.frequency = { setValueAtTime() {} };
+  }
+  connect() { return this; }
+  start() {}
+  stop() {}
+}
+
+class FakeAudioContext {
+  constructor() {
+    this.currentTime = 0;
+    this.state = "running";
+  }
+
+  createAnalyser(options) { return new FakeAnalyserNode(options); }
+  createGain() { return new FakeGainNode(); }
+  createOscillator() { return new FakeOscillatorNode(); }
+
+  resume() { this.state = "running"; }
+  suspend() { this.state = "suspended"; }
+  close() { this.state = "closed"; }
+}
+
+// === Usage example ===
+// Automatically uses real or fake context depending on browser state
+
+let audioCtx;
+try {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+} catch (e) {
+  console.warn("AudioContext not available, using FakeAudioContext");
+  audioCtx = new FakeAudioContext();
+}
+
+// If you want to *force* the fake version, just do:
+audioCtx = new FakeAudioContext();
+
+// Then use as normal:
 const oscillator = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+const analyser = audioCtx.createAnalyser({ fftSize: 1024 });
 
-oscillator.type = "sine";
-oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // value in hertz
-//oscillator.connect(audioCtx.destination);
+oscillator.connect(gain).connect(analyser);
 oscillator.start();
-
-const gain = new GainNode(audioCtx);
-const analyser = new AnalyserNode(audioCtx, {
-    fftSize: 1024,
-    smoothingTimeConstant: 0.8,
-});
-oscillator.connect(gain).connect(analyser)
 
 const bufferLength = analyser.frequencyBinCount;
 const dataArray = new Uint8Array(bufferLength);

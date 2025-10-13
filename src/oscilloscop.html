@@ -16,6 +16,7 @@
       <button class="retro-btn" id="tutorialBtn" title="Start tutorial">Tutorial</button>
       <button class="retro-btn" id="instructionsBtn">Instructions</button>
       <button class="retro-btn" id="collapseBtn">Collapse</button>
+      <button class="retro-btn" id="HomeBtn">Home</button>
     </div>
     <div class="window-body">
       <label>
@@ -480,6 +481,11 @@
         window.onboardingInstance.restart();
       }
     });
+
+    document.getElementById("HomeBtn").addEventListener("click", () => {
+  // Go to home.html (or index.html)
+  window.location.href = "index.html"; // change to "index.html" if needed
+});
 
     // --- SETTINGS TO URL ---
     const themeSelect = document.getElementById("themeSelect");
