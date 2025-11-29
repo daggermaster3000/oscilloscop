@@ -1460,13 +1460,21 @@ function drawOlympicRings() {
   // Olympic rings arrangement:
   // Top row: rings 1, 2, 3 (blue, yellow, black)
   // Bottom row: rings 4, 5 (green, red) - offset
+  // When spacingX = 0, all rings are at the same position (x = 0) - complete overlap
+  // When spacingX > 0, rings spread out from center
+  // When spacingX < 0, rings overlap more (negative values move rings past center)
+  const ring1X = -spacingX; // Left ring: negative offset from center
+  const ring2X = 0; // Center ring always at 0
+  const ring3X = spacingX; // Right ring: positive offset from center
+  const ring4X = -spacingX / 2; // Bottom left: halfway between ring 1 and center
+  const ring5X = spacingX / 2; // Bottom right: halfway between center and ring 3
   
   const rings = [
-    { x: -size - spacingX, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[0] }, // Ring 1 (top left)
-    { x: 0, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[2] }, // Ring 2 (top center)
-    { x: size + spacingX, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[4] }, // Ring 3 (top right)
-    { x: -(size + spacingX)/2, y: spacingY/2, color: window.olympicRingsSettings.ringColors[1] }, // Ring 4 (bottom left)
-    { x: (size + spacingX)/2, y: spacingY/2, color: window.olympicRingsSettings.ringColors[3] } // Ring 5 (bottom right)
+    { x: ring1X, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[0] }, // Ring 1 (top left)
+    { x: ring2X, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[2] }, // Ring 2 (top center)
+    { x: ring3X, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[4] }, // Ring 3 (top right)
+    { x: ring4X, y: spacingY/2, color: window.olympicRingsSettings.ringColors[1] }, // Ring 4 (bottom left)
+    { x: ring5X, y: spacingY/2, color: window.olympicRingsSettings.ringColors[3] } // Ring 5 (bottom right)
   ];
   
   // Draw rings

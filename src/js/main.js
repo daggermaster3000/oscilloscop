@@ -1062,7 +1062,7 @@ function bindOlympicRingsCheckbox(input, settingKey) {
 }
 
 // Bind all new controls
-bindOlympicRingsSlider(olympicRingsSpacingXInput, olympicRingsSpacingXValue, 'ringSpacingX', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsSpacingXInput, olympicRingsSpacingXValue, 'ringSpacingX', (v) => parseFloat(v).toFixed(1));
 bindOlympicRingsSlider(olympicRingsSpacingYInput, olympicRingsSpacingYValue, 'ringSpacingY', (v) => v.toString());
 bindOlympicRingsSlider(olympicRingsLayoutScaleInput, olympicRingsLayoutScaleValue, 'layoutScale');
 bindOlympicRingsSlider(olympicRingsHorizontalOffsetInput, olympicRingsHorizontalOffsetValue, 'horizontalOffset', (v) => v.toString());
@@ -1663,6 +1663,391 @@ function serializeSettingsToURL() {
 // Make function globally accessible for copy button
 window.serializeSettingsToURL = serializeSettingsToURL;
 
+// ===== PRESET SYSTEM =====
+// Serialize all settings to a JSON object
+function serializeSettingsToJSON() {
+  const settings = {
+    version: '1.0',
+    timestamp: new Date().toISOString(),
+    // Basic settings
+    displayMode: displayModeSelect ? displayModeSelect.value : '',
+    theme: themeSelect ? themeSelect.value : '',
+    inputSource: inputSourceSelect ? inputSourceSelect.value : '',
+    // Global visual settings
+    afterglow: afterglowOpacity,
+    smoothing: smoothingFactor,
+    lineWidth: lineWidth,
+    // Particle Cloud settings
+    particleResponse: document.getElementById('particleResponse')?.value || '',
+    particleCount: document.getElementById('particleCount')?.value || '',
+    particleSize: document.getElementById('particleSize')?.value || '',
+    equationPreset: document.getElementById('equationPreset')?.value || '',
+    eqX: document.getElementById('eqX')?.value || '',
+    eqY: document.getElementById('eqY')?.value || '',
+    eqZ: document.getElementById('eqZ')?.value || '',
+    rotatePreset: document.getElementById('rotatePreset')?.value || '',
+    rotateX: document.getElementById('rotateX')?.checked || false,
+    rotateY: document.getElementById('rotateY')?.checked || false,
+    rotateZ: document.getElementById('rotateZ')?.checked || false,
+    rotateXSpeed: document.getElementById('rotateXSpeed')?.value || '',
+    rotateYSpeed: document.getElementById('rotateYSpeed')?.value || '',
+    rotateZSpeed: document.getElementById('rotateZSpeed')?.value || '',
+    // Audio rotation
+    audioRotation: document.getElementById('audioRotation')?.checked || false,
+    audioRotationSource: document.getElementById('audioRotationSource')?.value || '',
+    audioRotationIntensity: document.getElementById('audioRotationIntensity')?.value || '',
+    // Audio morph
+    audioMorph: document.getElementById('audioMorph')?.checked || false,
+    audioMorphSource: document.getElementById('audioMorphSource')?.value || '',
+    audioMorphIntensity: document.getElementById('audioMorphIntensity')?.value || '',
+    // Mesh settings
+    meshResponse: document.getElementById('meshResponse')?.value || '',
+    meshResolution: document.getElementById('meshResolution')?.value || '',
+    meshWireframe: document.getElementById('meshWireframe')?.checked || false,
+    meshFilled: document.getElementById('meshFilled')?.checked || false,
+    meshEquationPreset: document.getElementById('meshEquationPreset')?.value || '',
+    meshEqX: document.getElementById('meshEqX')?.value || '',
+    meshEqY: document.getElementById('meshEqY')?.value || '',
+    meshEqZ: document.getElementById('meshEqZ')?.value || '',
+    meshRotateX: document.getElementById('meshRotateX')?.checked || false,
+    meshRotateY: document.getElementById('meshRotateY')?.checked || false,
+    meshRotateZ: document.getElementById('meshRotateZ')?.checked || false,
+    meshRotateXSpeed: document.getElementById('meshRotateXSpeed')?.value || '',
+    meshRotateYSpeed: document.getElementById('meshRotateYSpeed')?.value || '',
+    meshRotateZSpeed: document.getElementById('meshRotateZSpeed')?.value || '',
+    // Fourier settings
+    fourierHarmonics: document.getElementById('fourierHarmonics')?.value || '',
+    fourierContribution: document.getElementById('fourierContribution')?.value || '',
+    // Orbitals settings
+    orbitalsShowPaths: document.getElementById('orbitalsShowPaths')?.checked || false,
+    orbitalsPlanetSize: document.getElementById('orbitalsPlanetSize')?.value || '',
+    orbitals3D: document.getElementById('orbitals3D')?.checked || false,
+    orbitalsTilt: document.getElementById('orbitalsTilt')?.value || '',
+    orbitalsDepth: document.getElementById('orbitalsDepth')?.value || '',
+    orbitalsSpin: document.getElementById('orbitalsSpin')?.value || '',
+    // Game of Life settings
+    golCellSize: document.getElementById('golCellSize')?.value || '',
+    golReseed: document.getElementById('golReseed')?.value || '',
+    golBirthBoost: document.getElementById('golBirthBoost')?.value || '',
+    golSurvivalBoost: document.getElementById('golSurvivalBoost')?.value || '',
+    // MFCC settings
+    mfccSubdivisionMode: document.getElementById('mfccSubdivisionMode')?.value || '',
+    mfccSubdivision: document.getElementById('mfccSubdivision')?.value || '',
+    mfccTimeSubdivision: document.getElementById('mfccTimeSubdivision')?.value || '',
+    mfccBeatSensitivity: document.getElementById('mfccBeatSensitivity')?.value || '',
+    mfccPointLifetime: document.getElementById('mfccPointLifetime')?.value || '',
+    mfccPointSize: document.getElementById('mfccPointSize')?.value || '',
+    mfccMaxPoints: document.getElementById('mfccMaxPoints')?.value || '',
+    mfccShowTrail: document.getElementById('mfccShowTrail')?.checked || false,
+    mfccDimensions: document.getElementById('mfccDimensions')?.value || '',
+    mfccVisualizationMode: document.getElementById('mfccVisualizationMode')?.value || '',
+    // Olympic Rings settings
+    olympicRingsMode: document.getElementById('olympicRingsMode')?.value || '',
+    olympicRingsBeatSource: document.getElementById('olympicRingsBeatSource')?.value || '',
+    olympicRingsBeatThreshold: document.getElementById('olympicRingsBeatThreshold')?.value || '',
+    olympicRingsBeatDecay: document.getElementById('olympicRingsBeatDecay')?.value || '',
+    olympicRingsBeatMinInterval: document.getElementById('olympicRingsBeatMinInterval')?.value || '',
+    olympicRingsBeatSensitivity: document.getElementById('olympicRingsBeatSensitivity')?.value || '',
+    olympicRingsSize: document.getElementById('olympicRingsSize')?.value || '',
+    olympicRingsThickness: document.getElementById('olympicRingsThickness')?.value || '',
+    olympicRingsResponseSpeed: document.getElementById('olympicRingsResponseSpeed')?.value || '',
+    olympicRingsRotationSpeed: document.getElementById('olympicRingsRotationSpeed')?.value || '',
+    olympicRingsSpacingX: document.getElementById('olympicRingsSpacingX')?.value || '',
+    olympicRingsSpacingY: document.getElementById('olympicRingsSpacingY')?.value || '',
+    olympicRingsLayoutScale: document.getElementById('olympicRingsLayoutScale')?.value || '',
+    olympicRingsHorizontalOffset: document.getElementById('olympicRingsHorizontalOffset')?.value || '',
+    olympicRingsVerticalOffset: document.getElementById('olympicRingsVerticalOffset')?.value || '',
+    olympicRingsSizeMinScale: document.getElementById('olympicRingsSizeMinScale')?.value || '',
+    olympicRingsSizeMaxScale: document.getElementById('olympicRingsSizeMaxScale')?.value || '',
+    olympicRingsSizeSensitivity: document.getElementById('olympicRingsSizeSensitivity')?.value || '',
+    olympicRingsThicknessMinScale: document.getElementById('olympicRingsThicknessMinScale')?.value || '',
+    olympicRingsThicknessMaxScale: document.getElementById('olympicRingsThicknessMaxScale')?.value || '',
+    olympicRingsThicknessSensitivity: document.getElementById('olympicRingsThicknessSensitivity')?.value || '',
+    olympicRingsShowFill: document.getElementById('olympicRingsShowFill')?.checked || false,
+    olympicRingsFillOpacity: document.getElementById('olympicRingsFillOpacity')?.value || '',
+    olympicRingsFillOpacitySensitivity: document.getElementById('olympicRingsFillOpacitySensitivity')?.value || '',
+    olympicRingsShowGlow: document.getElementById('olympicRingsShowGlow')?.checked || false,
+    olympicRingsGlowIntensity: document.getElementById('olympicRingsGlowIntensity')?.value || '',
+    olympicRingsGlowSensitivity: document.getElementById('olympicRingsGlowSensitivity')?.value || '',
+    olympicRingsRingOpacity: document.getElementById('olympicRingsRingOpacity')?.value || '',
+    olympicRingsFrequencySensitivity: document.getElementById('olympicRingsFrequencySensitivity')?.value || '',
+    olympicRingsChannelSensitivity: document.getElementById('olympicRingsChannelSensitivity')?.value || '',
+    // Olympic Rings frequency ranges and channels (from settings object)
+    olympicRingsFrequencies: window.olympicRingsSettings ? JSON.stringify(window.olympicRingsSettings.ringFrequencies) : '',
+    olympicRingsChannels: window.olympicRingsSettings ? JSON.stringify(window.olympicRingsSettings.ringChannels) : '',
+    // Filter settings
+    filterEffect: document.getElementById('filterEffect')?.value || '',
+    filterIntensity: document.getElementById('filterIntensity')?.value || '',
+    filterResponse: document.getElementById('filterResponse')?.value || '',
+    filterResponseStrength: document.getElementById('filterResponseStrength')?.value || ''
+  };
+  
+  return settings;
+}
+
+// Deserialize and apply settings from JSON object
+function deserializeSettingsFromJSON(settings) {
+  if (!settings || typeof settings !== 'object') {
+    console.error('Invalid settings object');
+    return false;
+  }
+  
+  try {
+    // Basic settings
+    if (settings.displayMode && displayModeSelect) {
+      displayModeSelect.value = settings.displayMode;
+      displayModeSelect.dispatchEvent(new Event('change'));
+    }
+    if (settings.theme && themeSelect) {
+      themeSelect.value = settings.theme;
+      themeSelect.dispatchEvent(new Event('change'));
+    }
+    if (settings.inputSource && inputSourceSelect) {
+      inputSourceSelect.value = settings.inputSource;
+      inputSourceSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // Global visual settings
+    if (settings.afterglow !== undefined) {
+      afterglowOpacity = parseFloat(settings.afterglow);
+      if (afterglowKnob) afterglowKnob.setValue(afterglowOpacity);
+    }
+    if (settings.smoothing !== undefined) {
+      smoothingFactor = parseFloat(settings.smoothing);
+      if (smoothingKnob) smoothingKnob.setValue(smoothingFactor);
+    }
+    if (settings.lineWidth !== undefined) {
+      lineWidth = parseFloat(settings.lineWidth);
+      if (lineWidthKnob) lineWidthKnob.setValue(lineWidth);
+    }
+    
+    // Helper function to set input value and trigger event
+    const setInputValue = (id, value, isCheckbox = false) => {
+      const el = document.getElementById(id);
+      if (el && value !== undefined && value !== '') {
+        if (isCheckbox) {
+          el.checked = value === true || value === '1' || value === 1;
+        } else {
+          el.value = value;
+        }
+        const eventType = (el.tagName === 'INPUT' && el.type === 'range') ? 'input' : 'change';
+        el.dispatchEvent(new Event(eventType));
+      }
+    };
+    
+    // Apply all settings
+    setInputValue('particleResponse', settings.particleResponse);
+    setInputValue('particleCount', settings.particleCount);
+    setInputValue('particleSize', settings.particleSize);
+    setInputValue('equationPreset', settings.equationPreset);
+    if (settings.equationPreset && document.getElementById('equationPreset')) {
+      document.getElementById('equationPreset').dispatchEvent(new Event('change'));
+    }
+    setInputValue('eqX', settings.eqX);
+    setInputValue('eqY', settings.eqY);
+    setInputValue('eqZ', settings.eqZ);
+    setInputValue('rotatePreset', settings.rotatePreset);
+    if (settings.rotatePreset && document.getElementById('rotatePreset')) {
+      document.getElementById('rotatePreset').dispatchEvent(new Event('change'));
+    }
+    setInputValue('rotateX', settings.rotateX, true);
+    setInputValue('rotateY', settings.rotateY, true);
+    setInputValue('rotateZ', settings.rotateZ, true);
+    setInputValue('rotateXSpeed', settings.rotateXSpeed);
+    setInputValue('rotateYSpeed', settings.rotateYSpeed);
+    setInputValue('rotateZSpeed', settings.rotateZSpeed);
+    
+    setInputValue('audioRotation', settings.audioRotation, true);
+    setInputValue('audioRotationSource', settings.audioRotationSource);
+    setInputValue('audioRotationIntensity', settings.audioRotationIntensity);
+    setInputValue('audioMorph', settings.audioMorph, true);
+    setInputValue('audioMorphSource', settings.audioMorphSource);
+    setInputValue('audioMorphIntensity', settings.audioMorphIntensity);
+    
+    setInputValue('meshResponse', settings.meshResponse);
+    setInputValue('meshResolution', settings.meshResolution);
+    setInputValue('meshWireframe', settings.meshWireframe, true);
+    setInputValue('meshFilled', settings.meshFilled, true);
+    setInputValue('meshEquationPreset', settings.meshEquationPreset);
+    if (settings.meshEquationPreset && document.getElementById('meshEquationPreset')) {
+      document.getElementById('meshEquationPreset').dispatchEvent(new Event('change'));
+    }
+    setInputValue('meshEqX', settings.meshEqX);
+    setInputValue('meshEqY', settings.meshEqY);
+    setInputValue('meshEqZ', settings.meshEqZ);
+    setInputValue('meshRotateX', settings.meshRotateX, true);
+    setInputValue('meshRotateY', settings.meshRotateY, true);
+    setInputValue('meshRotateZ', settings.meshRotateZ, true);
+    setInputValue('meshRotateXSpeed', settings.meshRotateXSpeed);
+    setInputValue('meshRotateYSpeed', settings.meshRotateYSpeed);
+    setInputValue('meshRotateZSpeed', settings.meshRotateZSpeed);
+    
+    setInputValue('fourierHarmonics', settings.fourierHarmonics);
+    setInputValue('fourierContribution', settings.fourierContribution);
+    
+    setInputValue('orbitalsShowPaths', settings.orbitalsShowPaths, true);
+    setInputValue('orbitalsPlanetSize', settings.orbitalsPlanetSize);
+    setInputValue('orbitals3D', settings.orbitals3D, true);
+    setInputValue('orbitalsTilt', settings.orbitalsTilt);
+    setInputValue('orbitalsDepth', settings.orbitalsDepth);
+    setInputValue('orbitalsSpin', settings.orbitalsSpin);
+    
+    setInputValue('golCellSize', settings.golCellSize);
+    setInputValue('golReseed', settings.golReseed);
+    setInputValue('golBirthBoost', settings.golBirthBoost);
+    setInputValue('golSurvivalBoost', settings.golSurvivalBoost);
+    
+    setInputValue('mfccSubdivisionMode', settings.mfccSubdivisionMode);
+    setInputValue('mfccSubdivision', settings.mfccSubdivision);
+    setInputValue('mfccTimeSubdivision', settings.mfccTimeSubdivision);
+    setInputValue('mfccBeatSensitivity', settings.mfccBeatSensitivity);
+    setInputValue('mfccPointLifetime', settings.mfccPointLifetime);
+    setInputValue('mfccPointSize', settings.mfccPointSize);
+    setInputValue('mfccMaxPoints', settings.mfccMaxPoints);
+    setInputValue('mfccShowTrail', settings.mfccShowTrail, true);
+    setInputValue('mfccDimensions', settings.mfccDimensions);
+    setInputValue('mfccVisualizationMode', settings.mfccVisualizationMode);
+    
+    // Olympic Rings settings
+    setInputValue('olympicRingsMode', settings.olympicRingsMode);
+    if (settings.olympicRingsMode && document.getElementById('olympicRingsMode')) {
+      document.getElementById('olympicRingsMode').dispatchEvent(new Event('change'));
+    }
+    setInputValue('olympicRingsBeatSource', settings.olympicRingsBeatSource);
+    setInputValue('olympicRingsBeatThreshold', settings.olympicRingsBeatThreshold);
+    setInputValue('olympicRingsBeatDecay', settings.olympicRingsBeatDecay);
+    setInputValue('olympicRingsBeatMinInterval', settings.olympicRingsBeatMinInterval);
+    setInputValue('olympicRingsBeatSensitivity', settings.olympicRingsBeatSensitivity);
+    setInputValue('olympicRingsSize', settings.olympicRingsSize);
+    setInputValue('olympicRingsThickness', settings.olympicRingsThickness);
+    setInputValue('olympicRingsResponseSpeed', settings.olympicRingsResponseSpeed);
+    setInputValue('olympicRingsRotationSpeed', settings.olympicRingsRotationSpeed);
+    setInputValue('olympicRingsSpacingX', settings.olympicRingsSpacingX);
+    setInputValue('olympicRingsSpacingY', settings.olympicRingsSpacingY);
+    setInputValue('olympicRingsLayoutScale', settings.olympicRingsLayoutScale);
+    setInputValue('olympicRingsHorizontalOffset', settings.olympicRingsHorizontalOffset);
+    setInputValue('olympicRingsVerticalOffset', settings.olympicRingsVerticalOffset);
+    setInputValue('olympicRingsSizeMinScale', settings.olympicRingsSizeMinScale);
+    setInputValue('olympicRingsSizeMaxScale', settings.olympicRingsSizeMaxScale);
+    setInputValue('olympicRingsSizeSensitivity', settings.olympicRingsSizeSensitivity);
+    setInputValue('olympicRingsThicknessMinScale', settings.olympicRingsThicknessMinScale);
+    setInputValue('olympicRingsThicknessMaxScale', settings.olympicRingsThicknessMaxScale);
+    setInputValue('olympicRingsThicknessSensitivity', settings.olympicRingsThicknessSensitivity);
+    setInputValue('olympicRingsShowFill', settings.olympicRingsShowFill, true);
+    setInputValue('olympicRingsFillOpacity', settings.olympicRingsFillOpacity);
+    setInputValue('olympicRingsFillOpacitySensitivity', settings.olympicRingsFillOpacitySensitivity);
+    setInputValue('olympicRingsShowGlow', settings.olympicRingsShowGlow, true);
+    setInputValue('olympicRingsGlowIntensity', settings.olympicRingsGlowIntensity);
+    setInputValue('olympicRingsGlowSensitivity', settings.olympicRingsGlowSensitivity);
+    setInputValue('olympicRingsRingOpacity', settings.olympicRingsRingOpacity);
+    setInputValue('olympicRingsFrequencySensitivity', settings.olympicRingsFrequencySensitivity);
+    setInputValue('olympicRingsChannelSensitivity', settings.olympicRingsChannelSensitivity);
+    
+    // Olympic Rings frequency ranges and channels
+    if (settings.olympicRingsFrequencies && window.olympicRingsSettings) {
+      try {
+        window.olympicRingsSettings.ringFrequencies = JSON.parse(settings.olympicRingsFrequencies);
+      } catch (e) {
+        console.error('Error parsing Olympic Rings frequencies:', e);
+      }
+    }
+    if (settings.olympicRingsChannels && window.olympicRingsSettings) {
+      try {
+        window.olympicRingsSettings.ringChannels = JSON.parse(settings.olympicRingsChannels);
+      } catch (e) {
+        console.error('Error parsing Olympic Rings channels:', e);
+      }
+    }
+    
+    setInputValue('filterEffect', settings.filterEffect);
+    setInputValue('filterIntensity', settings.filterIntensity);
+    setInputValue('filterResponse', settings.filterResponse);
+    setInputValue('filterResponseStrength', settings.filterResponseStrength);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deserializing settings:', error);
+    return false;
+  }
+}
+
+// Save preset to localStorage
+function savePresetToLocalStorage() {
+  try {
+    const settings = serializeSettingsToJSON();
+    localStorage.setItem('oscilloscope_preset', JSON.stringify(settings));
+    return true;
+  } catch (error) {
+    console.error('Error saving preset to localStorage:', error);
+    return false;
+  }
+}
+
+// Load preset from localStorage
+function loadPresetFromLocalStorage() {
+  try {
+    const presetData = localStorage.getItem('oscilloscope_preset');
+    if (presetData) {
+      const settings = JSON.parse(presetData);
+      return deserializeSettingsFromJSON(settings);
+    }
+    return false;
+  } catch (error) {
+    console.error('Error loading preset from localStorage:', error);
+    return false;
+  }
+}
+
+// Download preset as JSON file
+function downloadPreset() {
+  try {
+    const settings = serializeSettingsToJSON();
+    const jsonStr = JSON.stringify(settings, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `oscilloscope-preset-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  } catch (error) {
+    console.error('Error downloading preset:', error);
+    return false;
+  }
+}
+
+// Upload preset from JSON file
+function uploadPreset(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const settings = JSON.parse(e.target.result);
+        if (deserializeSettingsFromJSON(settings)) {
+          resolve(true);
+        } else {
+          reject(new Error('Failed to apply settings'));
+        }
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => reject(new Error('Error reading file'));
+    reader.readAsText(file);
+  });
+}
+
+// Make functions globally accessible
+window.serializeSettingsToJSON = serializeSettingsToJSON;
+window.deserializeSettingsFromJSON = deserializeSettingsFromJSON;
+window.savePresetToLocalStorage = savePresetToLocalStorage;
+window.loadPresetFromLocalStorage = loadPresetFromLocalStorage;
+window.downloadPreset = downloadPreset;
+window.uploadPreset = uploadPreset;
+
 // Deserialize URL parameters and apply to settings
 function deserializeSettingsFromURL() {
   const params = new URLSearchParams(window.location.search);
@@ -2247,10 +2632,53 @@ function attachURLUpdateListeners() {
 // Initialize URL parameter system
 if (!window.isSettingsWindow) {
   // Load settings from URL on page load
+  // Auto-save preset when settings change (debounced)
+  let autoSaveTimeout = null;
+  function autoSavePreset() {
+    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+      if (typeof window.savePresetToLocalStorage === 'function') {
+        window.savePresetToLocalStorage();
+      }
+    }, 2000); // Save 2 seconds after last change
+  }
+
+  // Enhanced attachURLUpdateListeners to also trigger auto-save
+  const originalAttachURLUpdateListeners = attachURLUpdateListeners;
+  attachURLUpdateListeners = function() {
+    originalAttachURLUpdateListeners();
+    // Also attach auto-save listeners to all controls
+    const controls = document.getElementById('controls');
+    if (controls) {
+      controls.addEventListener('input', autoSavePreset);
+      controls.addEventListener('change', autoSavePreset);
+    }
+    // Knobs trigger URL updates which will be caught by the controls listeners
+    // But we can also add auto-save to the URL update function
+    const originalUpdateURLDebounced = window.updateURLDebounced;
+    if (originalUpdateURLDebounced) {
+      window.updateURLDebounced = function() {
+        originalUpdateURLDebounced();
+        autoSavePreset();
+      };
+    }
+  };
+
   window.addEventListener('DOMContentLoaded', () => {
     // Wait a bit for all controls to be initialized
     setTimeout(() => {
-      deserializeSettingsFromURL();
+      const params = new URLSearchParams(window.location.search);
+      const hasURLParams = params.toString().length > 0;
+      
+      // Load from URL if present, otherwise load from localStorage
+      if (hasURLParams) {
+        deserializeSettingsFromURL();
+      } else {
+        // Try to load preset from localStorage
+        if (typeof window.loadPresetFromLocalStorage === 'function') {
+          window.loadPresetFromLocalStorage();
+        }
+      }
       attachURLUpdateListeners();
     }, 100);
   });
@@ -2259,13 +2687,31 @@ if (!window.isSettingsWindow) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
-        deserializeSettingsFromURL();
+        const params = new URLSearchParams(window.location.search);
+        const hasURLParams = params.toString().length > 0;
+        
+        if (hasURLParams) {
+          deserializeSettingsFromURL();
+        } else {
+          if (typeof window.loadPresetFromLocalStorage === 'function') {
+            window.loadPresetFromLocalStorage();
+          }
+        }
         attachURLUpdateListeners();
       }, 100);
     });
   } else {
     setTimeout(() => {
-      deserializeSettingsFromURL();
+      const params = new URLSearchParams(window.location.search);
+      const hasURLParams = params.toString().length > 0;
+      
+      if (hasURLParams) {
+        deserializeSettingsFromURL();
+      } else {
+        if (typeof window.loadPresetFromLocalStorage === 'function') {
+          window.loadPresetFromLocalStorage();
+        }
+      }
       attachURLUpdateListeners();
     }, 100);
   }
