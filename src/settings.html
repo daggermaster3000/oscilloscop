@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Oscilloscope Settings</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      overflow-y: auto;
+      height: 100vh;
+      font-family: monospace;
+    }
+    
+    /* Override main CSS for settings window */
+    #controls {
+      position: static !important;
+      top: auto !important;
+      left: auto !important;
+      margin: 0 !important;
+      padding: 20px !important;
+      max-height: none !important;
+      overflow: visible !important;
+      background: rgba(0, 0, 0, 0.95) !important;
+    }
+    
+    .window-header {
+      position: sticky;
+      top: 0;
+      background: #000;
+      z-index: 1000;
+      padding: 15px 20px;
+      border-bottom: 2px solid #52ff54;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .window-title {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #52ff54;
+      margin: 0;
+    }
+    
+    .settings-info {
+      color: #52ff54;
+      font-size: 0.9em;
+      margin: 0;
+    }
+    
+    #closeSettingsBtn {
+      margin-top: 0;
+      align-self: flex-start;
+    }
+    
+    /* Ensure proper spacing for all controls */
+    #controls .window-body {
+      max-height: calc(100vh - 150px);
+      overflow-y: auto;
+      padding: 10px 0;
+    }
+    
+    #controls label {
+      display: block;
+      margin-bottom: 12px;
+      padding: 4px 0;
+    }
+    
+    #controls input[type="text"],
+    #controls input[type="number"],
+    #controls select {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    
+    #controls input[type="range"] {
+      width: 100%;
+      margin: 8px 0;
+    }
+    
+    #controls input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+    
+    #controls button {
+      margin: 8px 4px 8px 0;
+      display: inline-block;
+    }
+    
+    .control-section {
+      margin-top: 25px;
+      margin-bottom: 25px;
+      padding-top: 20px;
+      padding-bottom: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .control-section:first-of-type {
+      margin-top: 10px;
+    }
+    
+    .control-section h3 {
+      margin: 0 0 15px 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--ui-label, #52ff54);
+    }
+    
+    /* Knob controls spacing */
+    #knobControls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: flex-start;
+      margin: 15px 0;
+    }
+    
+    /* Fix for value spans next to inputs */
+    #controls span[id$="Value"] {
+      display: inline-block;
+      min-width: 60px;
+      text-align: right;
+      margin-left: 10px;
+      color: var(--ui-label, #52ff54);
+    }
+    
+    /* Ensure buttons don't overlap */
+    .window-header .retro-btn {
+      margin: 4px;
+      white-space: nowrap;
+    }
+    
+    /* Fix for file inputs */
+    #controls input[type="file"] {
+      width: 100%;
+      margin: 8px 0;
+      padding: 4px;
+    }
+    
+    /* Hide canvas in settings window */
+    #oscilloscope {
+      display: none !important;
+    }
+    
+    /* Hide unnecessary buttons in settings window */
+    #openSettingsWindowBtn,
+    #fullscreenBtn,
+    #hideControlsBtn,
+    #tutorialBtn,
+    #instructionsBtn,
+    #collapseBtn,
+    #HomeBtn {
+      display: none !important;
+    }
+    
+    /* Ensure proper scrolling */
+    html {
+      overflow-y: auto;
+    }
+    
+    /* Fix for dynamically loaded content */
+    #controls .window-body > * {
+      margin-bottom: 8px;
+    }
+    
+    /* Ensure labels with inputs are properly spaced */
+    #controls label {
+      clear: both;
+    }
+    
+    /* Fix for select elements inside labels */
+    #controls label select {
+      display: block;
+      margin-top: 4px;
+    }
+    
+    /* Better spacing for checkboxes */
+    #controls label input[type="checkbox"] + span,
+    #controls label input[type="checkbox"] + text {
+      margin-left: 4px;
+    }
+    
+    /* Ensure no overlapping with sticky header */
+    #controls .window-body {
+      padding-top: 10px;
+    }
+    
+    /* Fix for any inline elements that might cause issues */
+    #controls br {
+      display: block;
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="window-header">
+    <span class="window-title">Oscilloscope Settings</span>
+    <div class="settings-info">Settings are synced with the main window in real-time</div>
+    <button class="retro-btn" id="closeSettingsBtn" style="display: none;">Close Window</button>
+  </div>
+  
+  <!-- Copy entire controls structure from main window -->
+  <div id="controls">
+    <!-- Controls will be populated here -->
+  </div>
+
+  <canvas id="oscilloscope" style="display: none;"></canvas>
+
+  <script>
+    // Mark this as a settings window
+    window.isSettingsWindow = true;
+    
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const controlsPanel = document.getElementById('controls');
+    const broadcastChannel = new BroadcastChannel('oscilloscope_settings');
+    let settingsLoaded = false;
+    
+    // Check if we're in a popup window
+    if (window.opener) {
+      closeSettingsBtn.style.display = 'inline-block';
+      closeSettingsBtn.addEventListener('click', () => {
+        window.close();
+      });
+    }
+    
+    // Request controls HTML from main window
+    function requestControlsHTML() {
+      if (window.opener) {
+        window.opener.postMessage({ type: 'request_settings' }, '*');
+      }
+    }
+    
+    // Event delegation for all controls - this will work even after HTML is replaced
+    function setupEventDelegation() {
+      controlsPanel.addEventListener('input', (e) => {
+        if (settingsLoaded && e.target.id) {
+          // Skip file inputs - handle separately
+          if (e.target.type === 'file') return;
+          
+          const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+          syncControlChange(e.target.id, value, e.target.type || 'input');
+        }
+      });
+      
+      controlsPanel.addEventListener('change', (e) => {
+        if (settingsLoaded && e.target.id) {
+          // Handle file inputs specially
+          if (e.target.type === 'file' && e.target.files && e.target.files.length > 0) {
+            handleFileInput(e.target);
+            return;
+          }
+          
+          // Skip range inputs (handled by input event)
+          if (e.target.type === 'range') return;
+          
+          const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+          syncControlChange(e.target.id, value, e.target.type || 'change');
+        }
+      });
+      
+      controlsPanel.addEventListener('click', (e) => {
+        if (settingsLoaded && e.target.id && e.target.tagName === 'BUTTON') {
+          syncButtonClick(e.target.id);
+        }
+      });
+    }
+    
+    // Handle file input by reading file and sending to main window
+    function handleFileInput(fileInput) {
+      const file = fileInput.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const arrayBuffer = e.target.result;
+        // Send file data to main window using Transferable for better performance
+        if (window.opener) {
+          try {
+            window.opener.postMessage({
+              type: 'file_selected',
+              id: fileInput.id,
+              fileName: file.name,
+              fileType: file.type,
+              fileData: arrayBuffer
+            }, '*', [arrayBuffer]); // Transfer arrayBuffer
+          } catch (e) {
+            // Fallback if transfer fails - clone the array buffer
+            const cloned = arrayBuffer.slice();
+            window.opener.postMessage({
+              type: 'file_selected',
+              id: fileInput.id,
+              fileName: file.name,
+              fileType: file.type,
+              fileData: cloned
+            }, '*');
+          }
+        }
+        // BroadcastChannel doesn't support Transferable, so we clone
+        const cloned = arrayBuffer.slice();
+        broadcastChannel.postMessage({
+          type: 'file_selected',
+          id: fileInput.id,
+          fileName: file.name,
+          fileType: file.type,
+          fileData: cloned
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    
+    // Send control changes to main window
+    function syncControlChange(elementId, value, type) {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'control_change',
+          id: elementId,
+          value: value,
+          controlType: type
+        }, '*');
+      }
+      broadcastChannel.postMessage({
+        type: 'control_change',
+        id: elementId,
+        value: value,
+        controlType: type
+      });
+    }
+    
+    // Send button clicks to main window
+    function syncButtonClick(buttonId) {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'button_click',
+          id: buttonId
+        }, '*');
+      }
+      broadcastChannel.postMessage({
+        type: 'button_click',
+        id: buttonId
+      });
+    }
+    
+    // Track if we've received initial HTML
+    let initialHTMLReceived = false;
+    let lastScrollPosition = 0;
+    
+    // Listen for messages from main window
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'settings_html') {
+        // Only replace HTML on initial load or if explicitly marked as initial
+        if (!initialHTMLReceived || event.data.isInitial) {
+          // Save scroll position before replacing HTML
+          lastScrollPosition = window.scrollY || document.documentElement.scrollTop;
+          
+          controlsPanel.innerHTML = event.data.html;
+          settingsLoaded = true;
+          initialHTMLReceived = true;
+          
+          // Apply theme if provided
+          if (event.data.currentTheme) {
+            applyThemeToSettingsWindow(event.data.currentTheme);
+          }
+          
+          // Re-initialize after HTML is loaded
+          setTimeout(() => {
+            if (window.initSettingsWindow) {
+              window.initSettingsWindow();
+            }
+            // Restore scroll position after a brief delay
+            setTimeout(() => {
+              window.scrollTo(0, lastScrollPosition);
+            }, 50);
+          }, 100);
+        }
+      }
+    });
+    
+    // Listen for broadcast channel messages
+    broadcastChannel.addEventListener('message', (event) => {
+      if (event.data.type === 'settings_html') {
+        // Only replace HTML on initial load or if explicitly marked as initial
+        if (!initialHTMLReceived || event.data.isInitial) {
+          // Save scroll position before replacing HTML
+          lastScrollPosition = window.scrollY || document.documentElement.scrollTop;
+          
+          controlsPanel.innerHTML = event.data.html;
+          settingsLoaded = true;
+          initialHTMLReceived = true;
+          
+          // Apply theme if provided
+          if (event.data.currentTheme) {
+            applyThemeToSettingsWindow(event.data.currentTheme);
+          }
+          
+          setTimeout(() => {
+            if (window.initSettingsWindow) {
+              window.initSettingsWindow();
+            }
+            // Restore scroll position after a brief delay
+            setTimeout(() => {
+              window.scrollTo(0, lastScrollPosition);
+            }, 50);
+          }, 100);
+        }
+      } else if (event.data.type === 'control_change' && !event.source) {
+        // Update control from main window (only if not from this window)
+        const control = document.getElementById(event.data.id);
+        if (control && settingsLoaded) {
+          // Save scroll position before updating
+          const scrollPos = window.scrollY || document.documentElement.scrollTop;
+          
+          if (control.type === 'checkbox') {
+            control.checked = event.data.value;
+          } else {
+            control.value = event.data.value;
+          }
+          
+          // Restore scroll position after update
+          requestAnimationFrame(() => {
+            window.scrollTo(0, scrollPos);
+          });
+        }
+      } else if (event.data.type === 'theme_change') {
+        // Apply theme to settings window
+        applyThemeToSettingsWindow(event.data.themeName);
+      }
+    });
+    
+    // Apply theme to settings window
+    function applyThemeToSettingsWindow(themeName) {
+      if (typeof updateTheme === 'function') {
+        updateTheme(themeName);
+      }
+      // Also update theme select if it exists
+      const themeSelect = document.getElementById('themeSelect');
+      if (themeSelect) {
+        themeSelect.value = themeName;
+      }
+    }
+    
+    // Listen for theme changes from main window
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'theme_change') {
+        applyThemeToSettingsWindow(event.data.themeName);
+      }
+    });
+    
+    // Setup event delegation immediately
+    setupEventDelegation();
+    
+    // Request settings on load
+    requestControlsHTML();
+    
+    // Periodically request if not received
+    const requestInterval = setInterval(() => {
+      if (controlsPanel.innerHTML.trim() === '') {
+        requestControlsHTML();
+      } else {
+        clearInterval(requestInterval);
+        settingsLoaded = true;
+      }
+    }, 200);
+  </script>
+  
+  <!-- Load all scripts to initialize controls -->
+  <script src="js/themes.js"></script>
+  <script src="js/knob.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/main.js"></script>
+  
+  <script>
+    // Override visualization to prevent it from running in settings window
+    if (window.isSettingsWindow) {
+      // Prevent canvas from being displayed
+      const canvas = document.getElementById('oscilloscope');
+      if (canvas) {
+        canvas.style.display = 'none';
+      }
+      
+      // Override animate function after main.js loads
+      setTimeout(() => {
+        if (window.animate) {
+          const originalAnimate = window.animate;
+          window.animate = function() {
+            // Don't run visualization in settings window
+            return;
+          };
+        }
+      }, 1000);
+      
+      // Prevent audio from initializing
+      window.addEventListener('DOMContentLoaded', () => {
+        // Audio setup will be prevented by checking isSettingsWindow flag
+        // --- Draggable controls (only if header exists in loaded HTML) ---
+        setTimeout(() => {
+          const controls = document.getElementById('controls');
+          const header = document.querySelector('.window-header') || document.getElementById('controlsHeader');
+          if (header && controls) {
+            let pos = {x:0,y:0}, dragging=false, origin={x:0,y:0};
+            header.addEventListener('mousedown', (e)=>{
+              dragging = true; origin.x = e.clientX; origin.y = e.clientY;
+              const rect = controls.getBoundingClientRect(); pos.x = rect.left; pos.y = rect.top;
+              document.body.style.cursor = 'move';
+            });
+            window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.cursor='default'; });
+            window.addEventListener('mousemove', (e)=>{
+              if(!dragging) return;
+              const dx = e.clientX - origin.x; const dy = e.clientY - origin.y;
+              controls.style.left = (pos.x + dx) + 'px';
+              controls.style.top = (pos.y + dy) + 'px';
+            });
+          }
+        }, 500);
+      });
+    }
+  </script>
+</body>
+</html>
+

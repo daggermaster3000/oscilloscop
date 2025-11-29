@@ -11,6 +11,9 @@
     <div class="window-header" id="controlsHeader">
       <span class="window-title">Oscilloscope Controls</span>
       <div class="window-spacer"></div>
+      <button class="retro-btn" id="openSettingsWindowBtn" title="Open settings in separate window">Separate Window</button>
+      <button class="retro-btn" id="fullscreenBtn" title="Toggle fullscreen">Fullscreen</button>
+      <button class="retro-btn" id="hideControlsBtn" title="Hide controls panel">Hide Controls</button>
       <button class="retro-btn" id="tutorialBtn" title="Start tutorial">Tutorial</button>
       <button class="retro-btn" id="instructionsBtn">Instructions</button>
       <button class="retro-btn" id="collapseBtn">Collapse</button>
@@ -57,6 +60,7 @@
           <option value="lava">Lava Flow</option>
           <option value="pastel">Pastel Dream</option>
           <option value="minimal">Minimal Contrast</option>
+          <option value="olympic">Olympic Rings</option>
         </select>
       </label>
 
@@ -76,12 +80,247 @@
           <option value="Polygon Morph">Polygon Morph</option>
           <option value="Harmonic Orbital Systems">Harmonic Orbital Systems</option>
           <option value="Game of Life">Game of Life</option>
+          <option value="MFCC Trajectory">MFCC Trajectory</option>
+          <option value="Olympic Rings">Olympic Rings</option>
         </select>
       </label>
 
       <div class="control-section">
         <h3>Adjustments</h3>
         <div id="knobControls"></div>
+      </div>
+
+      <div class="control-section" id="mfccControls" style="display: none;">
+        <h3>MFCC Trajectory Controls</h3>
+        <label>
+          Subdivision Mode:
+          <select id="mfccSubdivisionMode">
+            <option value="beat">Beat Sync</option>
+            <option value="time">Time Based</option>
+          </select>
+        </label>
+        <label>
+          Beat Subdivision:
+          <select id="mfccSubdivision">
+            <option value="1">Beat (1/1)</option>
+            <option value="2">Half Beat (1/2)</option>
+            <option value="4">Quarter Beat (1/4)</option>
+            <option value="8">Eighth Beat (1/8)</option>
+          </select>
+        </label>
+        <label>
+          Time Subdivision (ms):
+          <input type="range" id="mfccTimeSubdivision" min="50" max="500" step="50" value="100">
+          <span id="mfccTimeSubdivisionValue">100</span>
+        </label>
+        <label>
+          Beat Sensitivity:
+          <input type="range" id="mfccBeatSensitivity" min="0.1" max="0.8" step="0.1" value="0.3">
+          <span id="mfccBeatSensitivityValue">0.3</span>
+        </label>
+        <label>
+          Point Lifetime (ms):
+          <input type="range" id="mfccPointLifetime" min="1000" max="10000" step="500" value="3000">
+          <span id="mfccPointLifetimeValue">3000</span>
+        </label>
+        <label>
+          Point Size:
+          <input type="range" id="mfccPointSize" min="2" max="12" step="1" value="4">
+          <span id="mfccPointSizeValue">4</span>
+        </label>
+        <label>
+          Max Points:
+          <input type="range" id="mfccMaxPoints" min="10" max="100" step="10" value="50">
+          <span id="mfccMaxPointsValue">50</span>
+        </label>
+        <label>
+          <input type="checkbox" id="mfccShowTrail" checked>
+          Show Trail Lines
+        </label>
+        <label>
+          Dimensions:
+          <select id="mfccDimensions">
+            <option value="1">1D</option>
+            <option value="2">2D</option>
+            <option value="3" selected>3D</option>
+          </select>
+        </label>
+        <label>
+          Visualization Mode:
+          <select id="mfccVisualizationMode">
+            <option value="points" selected>Points</option>
+            <option value="radial">Radial</option>
+            <option value="wave">Wave</option>
+            <option value="spiral">Spiral</option>
+            <option value="filter">Filter</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="control-section" id="olympicRingsControls" style="display: none;">
+        <h3>Olympic Rings Controls</h3>
+        <label>
+          Mode:
+          <select id="olympicRingsMode">
+            <option value="frequency" selected>Frequency</option>
+            <option value="channel">Channel</option>
+            <option value="beat">Beat Detection</option>
+          </select>
+        </label>
+        <div id="olympicRingsBeatControls" style="display: none;">
+          <h4>Beat Detection Settings</h4>
+          <label>
+            Beat Source:
+            <select id="olympicRingsBeatSource">
+              <option value="frequency" selected>Frequency</option>
+              <option value="channel">Channel</option>
+            </select>
+          </label>
+          <label>
+            Beat Threshold:
+            <input type="range" id="olympicRingsBeatThreshold" min="0.1" max="1.0" step="0.05" value="0.3">
+            <span id="olympicRingsBeatThresholdValue">0.3</span>
+          </label>
+          <label>
+            Beat Decay:
+            <input type="range" id="olympicRingsBeatDecay" min="0.8" max="0.99" step="0.01" value="0.95">
+            <span id="olympicRingsBeatDecayValue">0.95</span>
+          </label>
+          <label>
+            Min Beat Interval (ms):
+            <input type="range" id="olympicRingsBeatMinInterval" min="50" max="500" step="10" value="100">
+            <span id="olympicRingsBeatMinIntervalValue">100</span>
+          </label>
+          <label>
+            Beat Sensitivity:
+            <input type="range" id="olympicRingsBeatSensitivity" min="0" max="3.0" step="0.1" value="1.0">
+            <span id="olympicRingsBeatSensitivityValue">1.0</span>
+          </label>
+        </div>
+        <label>
+          Ring Size:
+          <input type="range" id="olympicRingsSize" min="60" max="200" step="10" value="120">
+          <span id="olympicRingsSizeValue">120</span>
+        </label>
+        <label>
+          Ring Thickness:
+          <input type="range" id="olympicRingsThickness" min="6" max="24" step="2" value="12">
+          <span id="olympicRingsThicknessValue">12</span>
+        </label>
+        <label>
+          Response Speed:
+          <input type="range" id="olympicRingsResponseSpeed" min="0.1" max="1.0" step="0.1" value="0.3">
+          <span id="olympicRingsResponseSpeedValue">0.3</span>
+        </label>
+        <label>
+          Rotation Speed:
+          <input type="range" id="olympicRingsRotationSpeed" min="0" max="2" step="0.1" value="0">
+          <span id="olympicRingsRotationSpeedValue">0</span>
+        </label>
+        <label>
+          Ring Spacing:
+          <input type="range" id="olympicRingsSpacing" min="0" max="50" step="2" value="20">
+          <span id="olympicRingsSpacingValue">20</span>
+        </label>
+        <label>
+          Layout Scale:
+          <input type="range" id="olympicRingsLayoutScale" min="0.5" max="2.0" step="0.1" value="1.0">
+          <span id="olympicRingsLayoutScaleValue">1.0</span>
+        </label>
+        <label>
+          Horizontal Offset:
+          <input type="range" id="olympicRingsHorizontalOffset" min="-200" max="200" step="10" value="0">
+          <span id="olympicRingsHorizontalOffsetValue">0</span>
+        </label>
+        <label>
+          Vertical Offset:
+          <input type="range" id="olympicRingsVerticalOffset" min="-200" max="200" step="10" value="0">
+          <span id="olympicRingsVerticalOffsetValue">0</span>
+        </label>
+        <h4>Size & Scaling</h4>
+        <label>
+          Size Min Scale:
+          <input type="range" id="olympicRingsSizeMinScale" min="0.3" max="1.0" step="0.1" value="0.7">
+          <span id="olympicRingsSizeMinScaleValue">0.7</span>
+        </label>
+        <label>
+          Size Max Scale:
+          <input type="range" id="olympicRingsSizeMaxScale" min="1.0" max="3.0" step="0.1" value="1.7">
+          <span id="olympicRingsSizeMaxScaleValue">1.7</span>
+        </label>
+        <label>
+          Size Sensitivity:
+          <input type="range" id="olympicRingsSizeSensitivity" min="0" max="2.0" step="0.1" value="1.0">
+          <span id="olympicRingsSizeSensitivityValue">1.0</span>
+        </label>
+        <label>
+          Thickness Min Scale:
+          <input type="range" id="olympicRingsThicknessMinScale" min="0.5" max="1.5" step="0.1" value="1.0">
+          <span id="olympicRingsThicknessMinScaleValue">1.0</span>
+        </label>
+        <label>
+          Thickness Max Scale:
+          <input type="range" id="olympicRingsThicknessMaxScale" min="1.0" max="3.0" step="0.1" value="1.5">
+          <span id="olympicRingsThicknessMaxScaleValue">1.5</span>
+        </label>
+        <label>
+          Thickness Sensitivity:
+          <input type="range" id="olympicRingsThicknessSensitivity" min="0" max="2.0" step="0.1" value="0.5">
+          <span id="olympicRingsThicknessSensitivityValue">0.5</span>
+        </label>
+        <h4>Visual Effects</h4>
+        <label>
+          <input type="checkbox" id="olympicRingsShowFill">
+          Show Ring Fill
+        </label>
+        <label>
+          Fill Opacity:
+          <input type="range" id="olympicRingsFillOpacity" min="0" max="1.0" step="0.1" value="0.3">
+          <span id="olympicRingsFillOpacityValue">0.3</span>
+        </label>
+        <label>
+          Fill Opacity Sensitivity:
+          <input type="range" id="olympicRingsFillOpacitySensitivity" min="0" max="1.0" step="0.1" value="0.4">
+          <span id="olympicRingsFillOpacitySensitivityValue">0.4</span>
+        </label>
+        <label>
+          <input type="checkbox" id="olympicRingsShowGlow">
+          Show Ring Glow
+        </label>
+        <label>
+          Glow Intensity:
+          <input type="range" id="olympicRingsGlowIntensity" min="0" max="50" step="5" value="15">
+          <span id="olympicRingsGlowIntensityValue">15</span>
+        </label>
+        <label>
+          Glow Sensitivity:
+          <input type="range" id="olympicRingsGlowSensitivity" min="0" max="50" step="5" value="20">
+          <span id="olympicRingsGlowSensitivityValue">20</span>
+        </label>
+        <label>
+          Ring Opacity:
+          <input type="range" id="olympicRingsRingOpacity" min="0.1" max="1.0" step="0.1" value="1.0">
+          <span id="olympicRingsRingOpacityValue">1.0</span>
+        </label>
+        <h4>Mode-Specific Sensitivity</h4>
+        <label>
+          Frequency Sensitivity:
+          <input type="range" id="olympicRingsFrequencySensitivity" min="0" max="3.0" step="0.1" value="1.0">
+          <span id="olympicRingsFrequencySensitivityValue">1.0</span>
+        </label>
+        <label>
+          Channel Sensitivity:
+          <input type="range" id="olympicRingsChannelSensitivity" min="0" max="3.0" step="0.1" value="1.0">
+          <span id="olympicRingsChannelSensitivityValue">1.0</span>
+        </label>
+        <div id="olympicRingsFrequencyControls" style="display: block;">
+          <h4>Frequency Ranges (Hz)</h4>
+          <div id="olympicRingsFrequencyInputs"></div>
+        </div>
+        <div id="olympicRingsChannelControls" style="display: none;">
+          <h4>Channel Mapping</h4>
+          <div id="olympicRingsChannelInputs"></div>
+        </div>
       </div>
 
       <div class="control-section">
@@ -415,6 +654,7 @@
               <li>Polygon Morph: audio morphs sides, rotation, and radius for geometric shapes.</li>
               <li>Harmonic Orbital Systems: audio‑scaled planets orbit with optional 3D tilt, depth, spin; toggle orbit paths, set planet size.</li>
               <li>Game of Life: audio injects life/noise and biases rules. Tune Cell Size, Reseed, Birth/Survival thresholds.</li>
+              <li>MFCC Trajectory: analyzes vocal timbre using 40 Mel-Frequency Cepstral Coefficients, reduced to 3D space via PCA to show timbre evolution as trajectories.</li>
             </ul>
           </li>
           <li>

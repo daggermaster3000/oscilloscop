@@ -19,7 +19,20 @@ dataArray = new Uint8Array(bufferLength);
 
 // Theme handling
 themeSelect.addEventListener("change", () => {
-  updateTheme(themeSelect.value);
+  const themeName = themeSelect.value;
+  updateTheme(themeName);
+  
+  // Broadcast theme change to settings window
+  if (settingsWindow && !settingsWindow.closed) {
+    settingsWindow.postMessage({
+      type: 'theme_change',
+      themeName: themeName
+    }, '*');
+  }
+  broadcastChannel.postMessage({
+    type: 'theme_change',
+    themeName: themeName
+  });
 });
 
 // Display mode handling
@@ -30,6 +43,8 @@ function updateModeSpecificControls(mode) {
   const fourierControls = document.getElementById('fourierControls');
   const orbitalsControls = document.getElementById('orbitalsControls');
   const golControls = document.getElementById('golControls');
+  const mfccControls = document.getElementById('mfccControls');
+  const olympicRingsControls = document.getElementById('olympicRingsControls');
   
   // Hide all mode-specific controls by default
   if (particleControls) particleControls.style.display = 'none';
@@ -37,6 +52,8 @@ function updateModeSpecificControls(mode) {
   if (fourierControls) fourierControls.style.display = 'none';
   if (orbitalsControls) orbitalsControls.style.display = 'none';
   if (golControls) golControls.style.display = 'none';
+  if (mfccControls) mfccControls.style.display = 'none';
+  if (olympicRingsControls) olympicRingsControls.style.display = 'none';
   
   // Show controls based on selected mode
   if (mode === 'Particle Cloud' && particleControls) {
@@ -49,6 +66,10 @@ function updateModeSpecificControls(mode) {
     orbitalsControls.style.display = 'block';
   } else if (mode === 'Game of Life' && golControls) {
     golControls.style.display = 'block';
+  } else if (mode === 'MFCC Trajectory' && mfccControls) {
+    mfccControls.style.display = 'block';
+  } else if (mode === 'Olympic Rings' && olympicRingsControls) {
+    olympicRingsControls.style.display = 'block';
   }
 }
 
@@ -669,6 +690,432 @@ bindMeshRotationControl(meshRotateXInput, meshRotateXSpeedInput, meshRotateXSpee
 bindMeshRotationControl(meshRotateYInput, meshRotateYSpeedInput, meshRotateYSpeedValue, 'enableY', 'speedY');
 bindMeshRotationControl(meshRotateZInput, meshRotateZSpeedInput, meshRotateZSpeedValue, 'enableZ', 'speedZ');
 
+// --- MFCC Controls ---
+const mfccSubdivisionSelect = document.getElementById('mfccSubdivision');
+const mfccBeatSensitivityInput = document.getElementById('mfccBeatSensitivity');
+const mfccBeatSensitivityValue = document.getElementById('mfccBeatSensitivityValue');
+const mfccPointLifetimeInput = document.getElementById('mfccPointLifetime');
+const mfccPointLifetimeValue = document.getElementById('mfccPointLifetimeValue');
+const mfccPointSizeInput = document.getElementById('mfccPointSize');
+const mfccPointSizeValue = document.getElementById('mfccPointSizeValue');
+const mfccMaxPointsInput = document.getElementById('mfccMaxPoints');
+const mfccMaxPointsValue = document.getElementById('mfccMaxPointsValue');
+const mfccShowTrailInput = document.getElementById('mfccShowTrail');
+const mfccDimensionsSelect = document.getElementById('mfccDimensions');
+const mfccVisualizationModeSelect = document.getElementById('mfccVisualizationMode');
+const mfccSubdivisionModeSelect = document.getElementById('mfccSubdivisionMode');
+const mfccTimeSubdivisionInput = document.getElementById('mfccTimeSubdivision');
+const mfccTimeSubdivisionValue = document.getElementById('mfccTimeSubdivisionValue');
+
+if (mfccSubdivisionSelect) {
+  mfccSubdivisionSelect.addEventListener('change', () => {
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.subdivision = parseInt(mfccSubdivisionSelect.value);
+    }
+  });
+}
+
+if (mfccBeatSensitivityInput) {
+  const updateSensitivity = () => {
+    const v = parseFloat(mfccBeatSensitivityInput.value);
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.threshold = v;
+    }
+    if (mfccBeatSensitivityValue) mfccBeatSensitivityValue.textContent = v.toFixed(1);
+  };
+  mfccBeatSensitivityInput.addEventListener('input', updateSensitivity);
+  mfccBeatSensitivityInput.addEventListener('change', updateSensitivity);
+  updateSensitivity();
+}
+
+if (mfccPointLifetimeInput) {
+  const updateLifetime = () => {
+    const v = parseInt(mfccPointLifetimeInput.value);
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.pointLifetime = v;
+    }
+    if (mfccPointLifetimeValue) mfccPointLifetimeValue.textContent = v;
+  };
+  mfccPointLifetimeInput.addEventListener('input', updateLifetime);
+  mfccPointLifetimeInput.addEventListener('change', updateLifetime);
+  updateLifetime();
+}
+
+if (mfccPointSizeInput) {
+  const updatePointSize = () => {
+    const v = parseInt(mfccPointSizeInput.value);
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.pointSize = v;
+    }
+    if (mfccPointSizeValue) mfccPointSizeValue.textContent = v;
+  };
+  mfccPointSizeInput.addEventListener('input', updatePointSize);
+  mfccPointSizeInput.addEventListener('change', updatePointSize);
+  updatePointSize();
+}
+
+if (mfccMaxPointsInput) {
+  const updateMaxPoints = () => {
+    const v = parseInt(mfccMaxPointsInput.value);
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.maxPoints = v;
+    }
+    if (mfccMaxPointsValue) mfccMaxPointsValue.textContent = v;
+  };
+  mfccMaxPointsInput.addEventListener('input', updateMaxPoints);
+  mfccMaxPointsInput.addEventListener('change', updateMaxPoints);
+  updateMaxPoints();
+}
+
+if (mfccShowTrailInput) {
+  mfccShowTrailInput.addEventListener('change', () => {
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.showTrail = mfccShowTrailInput.checked;
+    }
+  });
+}
+
+if (mfccDimensionsSelect) {
+  mfccDimensionsSelect.addEventListener('change', () => {
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.dimensions = parseInt(mfccDimensionsSelect.value);
+    }
+  });
+}
+
+if (mfccVisualizationModeSelect) {
+  mfccVisualizationModeSelect.addEventListener('change', () => {
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.visualizationMode = mfccVisualizationModeSelect.value;
+    }
+  });
+}
+
+if (mfccSubdivisionModeSelect) {
+  mfccSubdivisionModeSelect.addEventListener('change', () => {
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.subdivisionMode = mfccSubdivisionModeSelect.value;
+    }
+  });
+}
+
+if (mfccTimeSubdivisionInput) {
+  const updateTimeSubdivision = () => {
+    const v = parseInt(mfccTimeSubdivisionInput.value);
+    if (window.mfccBeatDetector) {
+      window.mfccBeatDetector.timeSubdivision = v;
+    }
+    if (mfccTimeSubdivisionValue) mfccTimeSubdivisionValue.textContent = v;
+  };
+  mfccTimeSubdivisionInput.addEventListener('input', updateTimeSubdivision);
+  mfccTimeSubdivisionInput.addEventListener('change', updateTimeSubdivision);
+  updateTimeSubdivision();
+}
+
+// --- Olympic Rings Controls ---
+const olympicRingsModeSelect = document.getElementById('olympicRingsMode');
+const olympicRingsSizeInput = document.getElementById('olympicRingsSize');
+const olympicRingsSizeValue = document.getElementById('olympicRingsSizeValue');
+const olympicRingsThicknessInput = document.getElementById('olympicRingsThickness');
+const olympicRingsThicknessValue = document.getElementById('olympicRingsThicknessValue');
+const olympicRingsResponseSpeedInput = document.getElementById('olympicRingsResponseSpeed');
+const olympicRingsResponseSpeedValue = document.getElementById('olympicRingsResponseSpeedValue');
+const olympicRingsRotationSpeedInput = document.getElementById('olympicRingsRotationSpeed');
+const olympicRingsRotationSpeedValue = document.getElementById('olympicRingsRotationSpeedValue');
+
+if (olympicRingsModeSelect) {
+  const updateControlVisibility = () => {
+    const mode = olympicRingsModeSelect.value;
+    const beatControls = document.getElementById('olympicRingsBeatControls');
+    const freqControls = document.getElementById('olympicRingsFrequencyControls');
+    const channelControls = document.getElementById('olympicRingsChannelControls');
+    
+    // Show/hide beat controls
+    if (beatControls) beatControls.style.display = mode === 'beat' ? 'block' : 'none';
+    
+    if (mode === 'beat') {
+      // In beat mode, show frequency/channel controls based on beat source
+      const beatSourceSelect = document.getElementById('olympicRingsBeatSource');
+      const beatSource = beatSourceSelect ? beatSourceSelect.value : 'frequency';
+      if (freqControls) freqControls.style.display = beatSource === 'frequency' ? 'block' : 'none';
+      if (channelControls) channelControls.style.display = beatSource === 'channel' ? 'block' : 'none';
+      
+      // Initialize channel controls if needed
+      if (beatSource === 'channel') {
+        updateOlympicRingsChannelControls();
+      }
+    } else {
+      // In frequency/channel mode, show respective controls
+      if (freqControls) freqControls.style.display = mode === 'frequency' ? 'block' : 'none';
+      if (channelControls) channelControls.style.display = mode === 'channel' ? 'block' : 'none';
+      
+      // Initialize channel controls if switching to channel mode
+      if (mode === 'channel') {
+        updateOlympicRingsChannelControls();
+      }
+    }
+  };
+  
+  olympicRingsModeSelect.addEventListener('change', () => {
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.mode = olympicRingsModeSelect.value;
+      updateControlVisibility();
+    }
+  });
+  
+  // Initialize channel controls on page load if needed
+  if (window.olympicRingsSettings) {
+    if (window.olympicRingsSettings.mode === 'channel' || 
+        (window.olympicRingsSettings.mode === 'beat' && window.olympicRingsSettings.beatSource === 'channel')) {
+      updateOlympicRingsChannelControls();
+    }
+    updateControlVisibility();
+  }
+}
+
+// Function to update channel mapping controls based on available channels
+function updateOlympicRingsChannelControls() {
+  const channelInputs = document.getElementById('olympicRingsChannelInputs');
+  if (!channelInputs) return;
+  
+  // Get available channel count (from global maxChannels or default to 2)
+  const availableChannels = typeof window.maxChannels !== 'undefined' ? window.maxChannels : 2;
+  
+  const ringNames = ['Ring 1 (Blue)', 'Ring 2 (Yellow)', 'Ring 3 (Black)', 'Ring 4 (Green)', 'Ring 5 (Red)'];
+  channelInputs.innerHTML = '';
+  
+  // Add info about available channels
+  const infoLabel = document.createElement('div');
+  infoLabel.style.marginBottom = '10px';
+  infoLabel.style.fontSize = '12px';
+  infoLabel.style.color = theme.label;
+  infoLabel.textContent = `Available Channels: ${availableChannels}`;
+  channelInputs.appendChild(infoLabel);
+  
+  for (let i = 0; i < 5; i++) {
+    const label = document.createElement('label');
+    label.style.display = 'block';
+    label.style.marginBottom = '10px';
+    
+    const ringLabel = document.createElement('span');
+    ringLabel.textContent = `${ringNames[i]}: `;
+    ringLabel.style.marginRight = '10px';
+    
+    const select = document.createElement('select');
+    select.id = `olympicRingsChannel${i}`;
+    select.style.marginLeft = '5px';
+    
+    // Create options for each available channel
+    for (let ch = 0; ch < availableChannels; ch++) {
+      const option = document.createElement('option');
+      option.value = ch.toString();
+      
+      // Use friendly names for first two channels, then channel numbers
+      if (ch === 0) {
+        option.textContent = 'Channel 1 (Left)';
+      } else if (ch === 1) {
+        option.textContent = 'Channel 2 (Right)';
+      } else {
+        option.textContent = `Channel ${ch + 1}`;
+      }
+      
+      // Set selected based on current setting (clamp to available channels)
+      const currentChannel = window.olympicRingsSettings.ringChannels[i];
+      if (ch === Math.min(currentChannel, availableChannels - 1)) {
+        option.selected = true;
+        // Update settings to ensure it's within bounds
+        window.olympicRingsSettings.ringChannels[i] = Math.min(currentChannel, availableChannels - 1);
+      }
+      
+      select.appendChild(option);
+    }
+    
+    select.addEventListener('change', () => {
+      if (window.olympicRingsSettings) {
+        window.olympicRingsSettings.ringChannels[i] = parseInt(select.value);
+      }
+    });
+    
+    label.appendChild(ringLabel);
+    label.appendChild(select);
+    channelInputs.appendChild(label);
+  }
+}
+
+if (olympicRingsSizeInput) {
+  const updateSize = () => {
+    const v = parseInt(olympicRingsSizeInput.value);
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.ringSize = v;
+    }
+    if (olympicRingsSizeValue) olympicRingsSizeValue.textContent = v;
+  };
+  olympicRingsSizeInput.addEventListener('input', updateSize);
+  olympicRingsSizeInput.addEventListener('change', updateSize);
+  updateSize();
+}
+
+if (olympicRingsThicknessInput) {
+  const updateThickness = () => {
+    const v = parseInt(olympicRingsThicknessInput.value);
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.ringThickness = v;
+    }
+    if (olympicRingsThicknessValue) olympicRingsThicknessValue.textContent = v;
+  };
+  olympicRingsThicknessInput.addEventListener('input', updateThickness);
+  olympicRingsThicknessInput.addEventListener('change', updateThickness);
+  updateThickness();
+}
+
+if (olympicRingsResponseSpeedInput) {
+  const updateResponseSpeed = () => {
+    const v = parseFloat(olympicRingsResponseSpeedInput.value);
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.responseSpeed = v;
+    }
+    if (olympicRingsResponseSpeedValue) olympicRingsResponseSpeedValue.textContent = v.toFixed(1);
+  };
+  olympicRingsResponseSpeedInput.addEventListener('input', updateResponseSpeed);
+  olympicRingsResponseSpeedInput.addEventListener('change', updateResponseSpeed);
+  updateResponseSpeed();
+}
+
+if (olympicRingsRotationSpeedInput) {
+  const updateRotationSpeed = () => {
+    const v = parseFloat(olympicRingsRotationSpeedInput.value);
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.rotationSpeed = v;
+    }
+    if (olympicRingsRotationSpeedValue) olympicRingsRotationSpeedValue.textContent = v.toFixed(1);
+  };
+  olympicRingsRotationSpeedInput.addEventListener('input', updateRotationSpeed);
+  olympicRingsRotationSpeedInput.addEventListener('change', updateRotationSpeed);
+  updateRotationSpeed();
+}
+
+// Additional Olympic Rings controls
+const olympicRingsSpacingInput = document.getElementById('olympicRingsSpacing');
+const olympicRingsSpacingValue = document.getElementById('olympicRingsSpacingValue');
+const olympicRingsLayoutScaleInput = document.getElementById('olympicRingsLayoutScale');
+const olympicRingsLayoutScaleValue = document.getElementById('olympicRingsLayoutScaleValue');
+const olympicRingsHorizontalOffsetInput = document.getElementById('olympicRingsHorizontalOffset');
+const olympicRingsHorizontalOffsetValue = document.getElementById('olympicRingsHorizontalOffsetValue');
+const olympicRingsVerticalOffsetInput = document.getElementById('olympicRingsVerticalOffset');
+const olympicRingsVerticalOffsetValue = document.getElementById('olympicRingsVerticalOffsetValue');
+const olympicRingsSizeMinScaleInput = document.getElementById('olympicRingsSizeMinScale');
+const olympicRingsSizeMinScaleValue = document.getElementById('olympicRingsSizeMinScaleValue');
+const olympicRingsSizeMaxScaleInput = document.getElementById('olympicRingsSizeMaxScale');
+const olympicRingsSizeMaxScaleValue = document.getElementById('olympicRingsSizeMaxScaleValue');
+const olympicRingsSizeSensitivityInput = document.getElementById('olympicRingsSizeSensitivity');
+const olympicRingsSizeSensitivityValue = document.getElementById('olympicRingsSizeSensitivityValue');
+const olympicRingsThicknessMinScaleInput = document.getElementById('olympicRingsThicknessMinScale');
+const olympicRingsThicknessMinScaleValue = document.getElementById('olympicRingsThicknessMinScaleValue');
+const olympicRingsThicknessMaxScaleInput = document.getElementById('olympicRingsThicknessMaxScale');
+const olympicRingsThicknessMaxScaleValue = document.getElementById('olympicRingsThicknessMaxScaleValue');
+const olympicRingsThicknessSensitivityInput = document.getElementById('olympicRingsThicknessSensitivity');
+const olympicRingsThicknessSensitivityValue = document.getElementById('olympicRingsThicknessSensitivityValue');
+const olympicRingsShowFillInput = document.getElementById('olympicRingsShowFill');
+const olympicRingsFillOpacityInput = document.getElementById('olympicRingsFillOpacity');
+const olympicRingsFillOpacityValue = document.getElementById('olympicRingsFillOpacityValue');
+const olympicRingsFillOpacitySensitivityInput = document.getElementById('olympicRingsFillOpacitySensitivity');
+const olympicRingsFillOpacitySensitivityValue = document.getElementById('olympicRingsFillOpacitySensitivityValue');
+const olympicRingsShowGlowInput = document.getElementById('olympicRingsShowGlow');
+const olympicRingsGlowIntensityInput = document.getElementById('olympicRingsGlowIntensity');
+const olympicRingsGlowIntensityValue = document.getElementById('olympicRingsGlowIntensityValue');
+const olympicRingsGlowSensitivityInput = document.getElementById('olympicRingsGlowSensitivity');
+const olympicRingsGlowSensitivityValue = document.getElementById('olympicRingsGlowSensitivityValue');
+const olympicRingsRingOpacityInput = document.getElementById('olympicRingsRingOpacity');
+const olympicRingsRingOpacityValue = document.getElementById('olympicRingsRingOpacityValue');
+const olympicRingsFrequencySensitivityInput = document.getElementById('olympicRingsFrequencySensitivity');
+const olympicRingsFrequencySensitivityValue = document.getElementById('olympicRingsFrequencySensitivityValue');
+const olympicRingsChannelSensitivityInput = document.getElementById('olympicRingsChannelSensitivity');
+const olympicRingsChannelSensitivityValue = document.getElementById('olympicRingsChannelSensitivityValue');
+
+// Helper function to bind slider controls
+function bindOlympicRingsSlider(input, valueLabel, settingKey, formatFn = (v) => v.toFixed(1)) {
+  if (!input) return;
+  const update = () => {
+    const v = parseFloat(input.value);
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings[settingKey] = v;
+    }
+    if (valueLabel) valueLabel.textContent = formatFn(v);
+  };
+  input.addEventListener('input', update);
+  input.addEventListener('change', update);
+  update();
+}
+
+// Helper function to bind checkbox controls
+function bindOlympicRingsCheckbox(input, settingKey) {
+  if (!input) return;
+  const update = () => {
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings[settingKey] = input.checked;
+    }
+  };
+  input.addEventListener('change', update);
+  update();
+}
+
+// Bind all new controls
+bindOlympicRingsSlider(olympicRingsSpacingInput, olympicRingsSpacingValue, 'ringSpacing', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsLayoutScaleInput, olympicRingsLayoutScaleValue, 'layoutScale');
+bindOlympicRingsSlider(olympicRingsHorizontalOffsetInput, olympicRingsHorizontalOffsetValue, 'horizontalOffset', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsVerticalOffsetInput, olympicRingsVerticalOffsetValue, 'verticalOffset', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsSizeMinScaleInput, olympicRingsSizeMinScaleValue, 'sizeMinScale');
+bindOlympicRingsSlider(olympicRingsSizeMaxScaleInput, olympicRingsSizeMaxScaleValue, 'sizeMaxScale');
+bindOlympicRingsSlider(olympicRingsSizeSensitivityInput, olympicRingsSizeSensitivityValue, 'sizeSensitivity');
+bindOlympicRingsSlider(olympicRingsThicknessMinScaleInput, olympicRingsThicknessMinScaleValue, 'thicknessMinScale');
+bindOlympicRingsSlider(olympicRingsThicknessMaxScaleInput, olympicRingsThicknessMaxScaleValue, 'thicknessMaxScale');
+bindOlympicRingsSlider(olympicRingsThicknessSensitivityInput, olympicRingsThicknessSensitivityValue, 'thicknessSensitivity');
+bindOlympicRingsCheckbox(olympicRingsShowFillInput, 'showFill');
+bindOlympicRingsSlider(olympicRingsFillOpacityInput, olympicRingsFillOpacityValue, 'fillOpacity');
+bindOlympicRingsSlider(olympicRingsFillOpacitySensitivityInput, olympicRingsFillOpacitySensitivityValue, 'fillOpacitySensitivity');
+bindOlympicRingsCheckbox(olympicRingsShowGlowInput, 'showGlow');
+bindOlympicRingsSlider(olympicRingsGlowIntensityInput, olympicRingsGlowIntensityValue, 'glowIntensity', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsGlowSensitivityInput, olympicRingsGlowSensitivityValue, 'glowSensitivity', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsRingOpacityInput, olympicRingsRingOpacityValue, 'ringOpacity');
+bindOlympicRingsSlider(olympicRingsFrequencySensitivityInput, olympicRingsFrequencySensitivityValue, 'frequencySensitivity');
+bindOlympicRingsSlider(olympicRingsChannelSensitivityInput, olympicRingsChannelSensitivityValue, 'channelSensitivity');
+
+// Beat detection controls
+const olympicRingsBeatSourceInput = document.getElementById('olympicRingsBeatSource');
+const olympicRingsBeatThresholdInput = document.getElementById('olympicRingsBeatThreshold');
+const olympicRingsBeatThresholdValue = document.getElementById('olympicRingsBeatThresholdValue');
+const olympicRingsBeatDecayInput = document.getElementById('olympicRingsBeatDecay');
+const olympicRingsBeatDecayValue = document.getElementById('olympicRingsBeatDecayValue');
+const olympicRingsBeatMinIntervalInput = document.getElementById('olympicRingsBeatMinInterval');
+const olympicRingsBeatMinIntervalValue = document.getElementById('olympicRingsBeatMinIntervalValue');
+const olympicRingsBeatSensitivityInput = document.getElementById('olympicRingsBeatSensitivity');
+const olympicRingsBeatSensitivityValue = document.getElementById('olympicRingsBeatSensitivityValue');
+
+if (olympicRingsBeatSourceInput) {
+  olympicRingsBeatSourceInput.addEventListener('change', () => {
+    if (window.olympicRingsSettings) {
+      window.olympicRingsSettings.beatSource = olympicRingsBeatSourceInput.value;
+      // Update control visibility
+      const mode = olympicRingsModeSelect ? olympicRingsModeSelect.value : 'frequency';
+      if (mode === 'beat') {
+        const freqControls = document.getElementById('olympicRingsFrequencyControls');
+        const channelControls = document.getElementById('olympicRingsChannelControls');
+        if (freqControls) freqControls.style.display = olympicRingsBeatSourceInput.value === 'frequency' ? 'block' : 'none';
+        if (channelControls) channelControls.style.display = olympicRingsBeatSourceInput.value === 'channel' ? 'block' : 'none';
+        
+        if (olympicRingsBeatSourceInput.value === 'channel') {
+          updateOlympicRingsChannelControls();
+        }
+      }
+    }
+  });
+}
+
+bindOlympicRingsSlider(olympicRingsBeatThresholdInput, olympicRingsBeatThresholdValue, 'beatThreshold');
+bindOlympicRingsSlider(olympicRingsBeatDecayInput, olympicRingsBeatDecayValue, 'beatDecay');
+bindOlympicRingsSlider(olympicRingsBeatMinIntervalInput, olympicRingsBeatMinIntervalValue, 'beatMinInterval', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsBeatSensitivityInput, olympicRingsBeatSensitivityValue, 'beatSensitivity');
+
 // --- Audio-Reactive Filters ---
 const filterEffectSelect = document.getElementById('filterEffect');
 const filterIntensityInput = document.getElementById('filterIntensity');
@@ -759,11 +1206,1042 @@ function animate() {
     case "Game of Life":
       drawGameOfLife();
       break;
+    case "MFCC Trajectory":
+      drawMFCCTrajectory();
+      break;
+    case "Olympic Rings":
+      drawOlympicRings();
+      break;
     default:
       drawWaveform();
   }
 }
 
-// Initialize theme and start animation
-updateTheme("green");
-animate(); 
+// Initialize theme and start animation (only if not in settings window)
+if (!window.isSettingsWindow) {
+  updateTheme("green");
+  animate();
+}
+
+// --- Dual Window / Projector Mode ---
+let settingsWindow = null;
+const broadcastChannel = new BroadcastChannel('oscilloscope_settings');
+
+// Settings window management
+const openSettingsWindowBtn = document.getElementById('openSettingsWindowBtn');
+const hideControlsBtn = document.getElementById('hideControlsBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const controlsPanel = document.getElementById('controls');
+
+if (openSettingsWindowBtn) {
+  openSettingsWindowBtn.addEventListener('click', () => {
+    if (settingsWindow && !settingsWindow.closed) {
+      settingsWindow.focus();
+      return;
+    }
+    
+    // Open settings window
+    const width = 600;
+    const height = window.screen.height - 100;
+    const left = window.screen.width - width - 20;
+    const top = 50;
+    
+    settingsWindow = window.open(
+      'settings.html',
+      'oscilloscopeSettings',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+    
+    if (settingsWindow) {
+      // Reset initialization flag when opening new window
+      settingsWindowInitialized = false;
+      
+      // Wait for window to load, then send controls HTML
+      settingsWindow.addEventListener('load', () => {
+        setTimeout(() => {
+          sendInitialSettingsToWindow();
+        }, 500);
+      });
+      
+      // Send settings when window opens
+      setTimeout(() => {
+        sendInitialSettingsToWindow();
+      }, 500);
+    }
+  });
+}
+
+function sendSettingsToWindow() {
+  if (settingsWindow && !settingsWindow.closed) {
+    const controlsHTML = controlsPanel.innerHTML;
+    const currentTheme = themeSelect ? themeSelect.value : 'green';
+    
+    settingsWindow.postMessage({
+      type: 'settings_html',
+      html: controlsHTML,
+      currentTheme: currentTheme,
+      isInitial: !settingsWindowInitialized
+    }, '*');
+    
+    broadcastChannel.postMessage({
+      type: 'settings_html',
+      html: controlsHTML,
+      currentTheme: currentTheme,
+      isInitial: !settingsWindowInitialized
+    });
+  }
+}
+
+// Hide/show controls panel (button)
+if (hideControlsBtn) {
+  hideControlsBtn.addEventListener('click', () => {
+    toggleControlsVisibility();
+  });
+}
+
+// Helper to toggle controls visibility
+function toggleControlsVisibility() {
+  if (!controlsPanel) return;
+  const isHidden = controlsPanel.style.display === 'none';
+  controlsPanel.style.display = isHidden ? 'block' : 'none';
+  if (hideControlsBtn) {
+    hideControlsBtn.textContent = isHidden ? 'Hide Controls' : 'Show Controls';
+  }
+}
+
+// Keyboard shortcut: 's' to hide/show settings (main window only)
+if (!window.isSettingsWindow) {
+  window.addEventListener('keydown', (e) => {
+    // Ignore when typing in inputs or textareas
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.altKey || e.metaKey || e.ctrlKey) {
+      return;
+    }
+    // Key 's' or 'S'
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      toggleControlsVisibility();
+    }
+  });
+}
+
+// Fullscreen mode
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      canvas.requestFullscreen().catch(err => {
+        console.error('Error entering fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  });
+  
+  // Update button text based on fullscreen state
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+      fullscreenBtn.textContent = 'Exit Fullscreen';
+      // Optionally hide controls when entering fullscreen
+      if (settingsWindow && !settingsWindow.closed) {
+        controlsPanel.style.display = 'none';
+      }
+    } else {
+      fullscreenBtn.textContent = 'Fullscreen';
+    }
+  });
+}
+
+// Listen for control changes from settings window
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'request_settings') {
+    sendSettingsToWindow();
+  } else if (event.data.type === 'control_change') {
+    // Update control value in main window
+    const control = document.getElementById(event.data.id);
+    if (control) {
+      const oldValue = control.type === 'checkbox' ? control.checked : control.value;
+      if (control.type === 'checkbox') {
+        control.checked = event.data.value;
+      } else {
+        control.value = event.data.value;
+      }
+      // Special handling for theme select - ensure theme is applied
+      if (control.id === 'themeSelect' && control.value !== oldValue) {
+        const themeName = control.value;
+        updateTheme(themeName);
+        // Broadcast theme change to settings window
+        if (settingsWindow && !settingsWindow.closed) {
+          settingsWindow.postMessage({
+            type: 'theme_change',
+            themeName: themeName
+          }, '*');
+        }
+        broadcastChannel.postMessage({
+          type: 'theme_change',
+          themeName: themeName
+        });
+      } else {
+        // Trigger change event to update visualization
+        const eventType = control.type === 'range' ? 'input' : 'change';
+        control.dispatchEvent(new Event(eventType, { bubbles: true }));
+      }
+    }
+  } else if (event.data.type === 'button_click') {
+    // Trigger button click in main window
+    const button = document.getElementById(event.data.id);
+    if (button) {
+      button.click();
+    }
+  } else if (event.data.type === 'file_selected') {
+    // Handle file selection from settings window
+    handleFileFromSettings(event.data);
+  }
+});
+
+// Handle file selection from settings window
+function handleFileFromSettings(fileData) {
+  const fileInput = document.getElementById(fileData.id);
+  if (!fileInput) return;
+  
+  // Create a Blob from the ArrayBuffer
+  const blob = new Blob([fileData.fileData], { type: fileData.fileType });
+  const file = new File([blob], fileData.fileName, { type: fileData.fileType });
+  
+  // Create a DataTransfer object to set files
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  fileInput.files = dataTransfer.files;
+  
+  // Trigger change event on file input
+  fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+// Listen for broadcast channel messages
+broadcastChannel.addEventListener('message', (event) => {
+  if (event.data.type === 'control_change') {
+    const control = document.getElementById(event.data.id);
+    if (control) {
+      const oldValue = control.type === 'checkbox' ? control.checked : control.value;
+      if (control.type === 'checkbox') {
+        control.checked = event.data.value;
+      } else {
+        control.value = event.data.value;
+      }
+      // Special handling for theme select - ensure theme is applied
+      if (control.id === 'themeSelect' && control.value !== oldValue) {
+        const themeName = control.value;
+        updateTheme(themeName);
+        // Broadcast theme change to settings window
+        if (settingsWindow && !settingsWindow.closed) {
+          settingsWindow.postMessage({
+            type: 'theme_change',
+            themeName: themeName
+          }, '*');
+        }
+        broadcastChannel.postMessage({
+          type: 'theme_change',
+          themeName: themeName
+        });
+      } else {
+        const eventType = control.type === 'range' ? 'input' : 'change';
+        control.dispatchEvent(new Event(eventType, { bubbles: true }));
+      }
+    }
+  } else if (event.data.type === 'button_click') {
+    const button = document.getElementById(event.data.id);
+    if (button) {
+      button.click();
+    }
+  } else if (event.data.type === 'file_selected') {
+    handleFileFromSettings(event.data);
+  } else if (event.data.type === 'theme_change') {
+    // Sync theme to settings window
+    if (settingsWindow && !settingsWindow.closed) {
+      settingsWindow.postMessage({
+        type: 'theme_change',
+        themeName: event.data.themeName
+      }, '*');
+    }
+  }
+});
+
+// Send settings HTML when controls are updated (for settings window)
+function syncSettingsToWindow() {
+  if (settingsWindow && !settingsWindow.closed) {
+    sendSettingsToWindow();
+  }
+}
+
+// Track if settings window has received initial HTML
+let settingsWindowInitialized = false;
+
+// Send initial settings HTML to settings window (only once per window instance)
+function sendInitialSettingsToWindow() {
+  if (settingsWindow && !settingsWindow.closed) {
+    if (!settingsWindowInitialized) {
+      sendSettingsToWindow();
+      settingsWindowInitialized = true;
+    }
+  }
+}
+
+// Monitor for changes in controls and sync to settings window
+// Only send HTML updates if the structure actually changed (new controls added/removed)
+// For value changes, we rely on the control_change messages instead
+setInterval(() => {
+  if (settingsWindow && !settingsWindow.closed && settingsWindowInitialized) {
+    // Check if controls HTML structure has changed (not just values)
+    const currentHTML = controlsPanel.innerHTML;
+    // Only update if structure changed significantly (more than just value attributes)
+    // This is a simple check - we could make it more sophisticated
+    if (currentHTML !== lastControlsHTML) {
+      // Check if it's just value changes or actual structure changes
+      const currentControls = Array.from(controlsPanel.querySelectorAll('input, select, button')).map(el => ({
+        id: el.id,
+        type: el.type,
+        tag: el.tagName
+      }));
+      const lastControls = Array.from(controlsPanel.querySelectorAll('input, select, button')).map(el => ({
+        id: el.id,
+        type: el.type,
+        tag: el.tagName
+      }));
+      
+      // Only send HTML if structure changed (new/removed controls)
+      const structureChanged = JSON.stringify(currentControls) !== JSON.stringify(lastControls);
+      if (structureChanged) {
+        sendSettingsToWindow();
+        lastControlsHTML = currentHTML;
+      }
+    }
+  }
+}, 5000); // Check less frequently - every 5 seconds instead of 1 second
+
+let lastControlsHTML = controlsPanel ? controlsPanel.innerHTML : '';
+
+// --- URL Parameter Management ---
+// This system syncs all settings to URL parameters for easy sharing and bookmarking
+
+// Serialize all settings to URL parameters
+function serializeSettingsToURL() {
+  const params = new URLSearchParams();
+  
+  // Basic settings
+  if (displayModeSelect) params.set('mode', displayModeSelect.value);
+  if (themeSelect) params.set('theme', themeSelect.value);
+  if (inputSourceSelect) params.set('inputSource', inputSourceSelect.value);
+  
+  // Global visual settings (knobs)
+  params.set('afterglow', afterglowOpacity.toFixed(2));
+  params.set('lineWidth', lineWidth.toFixed(1));
+  params.set('smoothing', smoothingFactor.toFixed(2));
+  
+  // Particle Cloud settings
+  if (particleCountInput) params.set('particleCount', particleCountInput.value);
+  if (particleSizeInput) params.set('particleSize', particleSizeInput.value);
+  if (eqXInput) params.set('eqX', encodeURIComponent(eqXInput.value));
+  if (eqYInput) params.set('eqY', encodeURIComponent(eqYInput.value));
+  if (eqZInput) params.set('eqZ', encodeURIComponent(eqZInput.value));
+  if (eqPresetSelect) params.set('eqPreset', eqPresetSelect.value);
+  if (responseModeSelect) params.set('particleResponse', responseModeSelect.value);
+  if (rotateXInput) params.set('rotateX', rotateXInput.checked ? '1' : '0');
+  if (rotateYInput) params.set('rotateY', rotateYInput.checked ? '1' : '0');
+  if (rotateZInput) params.set('rotateZ', rotateZInput.checked ? '1' : '0');
+  if (rotateXSpeedInput) params.set('rotateXSpeed', rotateXSpeedInput.value);
+  if (rotateYSpeedInput) params.set('rotateYSpeed', rotateYSpeedInput.value);
+  if (rotateZSpeedInput) params.set('rotateZSpeed', rotateZSpeedInput.value);
+  if (rotatePresetSelect) params.set('rotatePreset', rotatePresetSelect.value);
+  
+  // Audio rotation settings
+  if (audioRotationInput) params.set('audioRotation', audioRotationInput.checked ? '1' : '0');
+  if (audioRotationSourceSelect) params.set('audioRotationSource', audioRotationSourceSelect.value);
+  if (audioRotationIntensityInput) params.set('audioRotationIntensity', audioRotationIntensityInput.value);
+  
+  // Audio morph settings
+  if (audioMorphInput) params.set('audioMorph', audioMorphInput.checked ? '1' : '0');
+  if (audioMorphSourceSelect) params.set('audioMorphSource', audioMorphSourceSelect.value);
+  if (audioMorphIntensityInput) params.set('audioMorphIntensity', audioMorphIntensityInput.value);
+  
+  // Fourier settings
+  if (fourierHarmonicsInput) params.set('fourierHarmonics', fourierHarmonicsInput.value);
+  if (fourierContributionInput) params.set('fourierContribution', fourierContributionInput.value);
+  
+  // Orbitals settings
+  if (orbitalsShowPathsInput) params.set('orbitalsShowPaths', orbitalsShowPathsInput.checked ? '1' : '0');
+  if (orbitalsPlanetSizeInput) params.set('orbitalsPlanetSize', orbitalsPlanetSizeInput.value);
+  if (orbitals3DInput) params.set('orbitals3D', orbitals3DInput.checked ? '1' : '0');
+  if (orbitalsTiltInput) params.set('orbitalsTilt', orbitalsTiltInput.value);
+  if (orbitalsDepthInput) params.set('orbitalsDepth', orbitalsDepthInput.value);
+  if (orbitalsSpinInput) params.set('orbitalsSpin', orbitalsSpinInput.value);
+  
+  // GoL settings
+  if (golCellSizeInput) params.set('golCellSize', golCellSizeInput.value);
+  if (golReseedInput) params.set('golReseed', golReseedInput.value);
+  if (golBirthBoostInput) params.set('golBirthBoost', golBirthBoostInput.value);
+  if (golSurvivalBoostInput) params.set('golSurvivalBoost', golSurvivalBoostInput.value);
+  
+  // Mesh settings
+  if (meshResponseSelect) params.set('meshResponse', meshResponseSelect.value);
+  if (meshResolutionInput) params.set('meshResolution', meshResolutionInput.value);
+  if (meshWireframeInput) params.set('meshWireframe', meshWireframeInput.checked ? '1' : '0');
+  if (meshFilledInput) params.set('meshFilled', meshFilledInput.checked ? '1' : '0');
+  if (meshEqXInput) params.set('meshEqX', encodeURIComponent(meshEqXInput.value));
+  if (meshEqYInput) params.set('meshEqY', encodeURIComponent(meshEqYInput.value));
+  if (meshEqZInput) params.set('meshEqZ', encodeURIComponent(meshEqZInput.value));
+  if (meshEqPresetSelect) params.set('meshEqPreset', meshEqPresetSelect.value);
+  if (meshRotateXInput) params.set('meshRotateX', meshRotateXInput.checked ? '1' : '0');
+  if (meshRotateYInput) params.set('meshRotateY', meshRotateYInput.checked ? '1' : '0');
+  if (meshRotateZInput) params.set('meshRotateZ', meshRotateZInput.checked ? '1' : '0');
+  if (meshRotateXSpeedInput) params.set('meshRotateXSpeed', meshRotateXSpeedInput.value);
+  if (meshRotateYSpeedInput) params.set('meshRotateYSpeed', meshRotateYSpeedInput.value);
+  if (meshRotateZSpeedInput) params.set('meshRotateZSpeed', meshRotateZSpeedInput.value);
+  
+  // MFCC settings
+  if (mfccSubdivisionModeSelect) params.set('mfccSubdivisionMode', mfccSubdivisionModeSelect.value);
+  if (mfccSubdivisionSelect) params.set('mfccSubdivision', mfccSubdivisionSelect.value);
+  if (mfccTimeSubdivisionInput) params.set('mfccTimeSubdivision', mfccTimeSubdivisionInput.value);
+  if (mfccBeatSensitivityInput) params.set('mfccBeatSensitivity', mfccBeatSensitivityInput.value);
+  if (mfccPointLifetimeInput) params.set('mfccPointLifetime', mfccPointLifetimeInput.value);
+  if (mfccPointSizeInput) params.set('mfccPointSize', mfccPointSizeInput.value);
+  if (mfccMaxPointsInput) params.set('mfccMaxPoints', mfccMaxPointsInput.value);
+  if (mfccShowTrailInput) params.set('mfccShowTrail', mfccShowTrailInput.checked ? '1' : '0');
+  if (mfccDimensionsSelect) params.set('mfccDimensions', mfccDimensionsSelect.value);
+  if (mfccVisualizationModeSelect) params.set('mfccVisualizationMode', mfccVisualizationModeSelect.value);
+  
+  // Olympic Rings settings
+  if (olympicRingsModeSelect) params.set('olympicRingsMode', olympicRingsModeSelect.value);
+  if (olympicRingsBeatSourceInput) params.set('olympicRingsBeatSource', olympicRingsBeatSourceInput.value);
+  if (olympicRingsBeatThresholdInput) params.set('olympicRingsBeatThreshold', olympicRingsBeatThresholdInput.value);
+  if (olympicRingsBeatDecayInput) params.set('olympicRingsBeatDecay', olympicRingsBeatDecayInput.value);
+  if (olympicRingsBeatMinIntervalInput) params.set('olympicRingsBeatMinInterval', olympicRingsBeatMinIntervalInput.value);
+  if (olympicRingsBeatSensitivityInput) params.set('olympicRingsBeatSensitivity', olympicRingsBeatSensitivityInput.value);
+  if (olympicRingsSizeInput) params.set('olympicRingsSize', olympicRingsSizeInput.value);
+  if (olympicRingsThicknessInput) params.set('olympicRingsThickness', olympicRingsThicknessInput.value);
+  if (olympicRingsResponseSpeedInput) params.set('olympicRingsResponseSpeed', olympicRingsResponseSpeedInput.value);
+  if (olympicRingsRotationSpeedInput) params.set('olympicRingsRotationSpeed', olympicRingsRotationSpeedInput.value);
+  if (olympicRingsSpacingInput) params.set('olympicRingsSpacing', olympicRingsSpacingInput.value);
+  if (olympicRingsLayoutScaleInput) params.set('olympicRingsLayoutScale', olympicRingsLayoutScaleInput.value);
+  if (olympicRingsHorizontalOffsetInput) params.set('olympicRingsHorizontalOffset', olympicRingsHorizontalOffsetInput.value);
+  if (olympicRingsVerticalOffsetInput) params.set('olympicRingsVerticalOffset', olympicRingsVerticalOffsetInput.value);
+  if (olympicRingsSizeMinScaleInput) params.set('olympicRingsSizeMinScale', olympicRingsSizeMinScaleInput.value);
+  if (olympicRingsSizeMaxScaleInput) params.set('olympicRingsSizeMaxScale', olympicRingsSizeMaxScaleInput.value);
+  if (olympicRingsSizeSensitivityInput) params.set('olympicRingsSizeSensitivity', olympicRingsSizeSensitivityInput.value);
+  if (olympicRingsThicknessMinScaleInput) params.set('olympicRingsThicknessMinScale', olympicRingsThicknessMinScaleInput.value);
+  if (olympicRingsThicknessMaxScaleInput) params.set('olympicRingsThicknessMaxScale', olympicRingsThicknessMaxScaleInput.value);
+  if (olympicRingsThicknessSensitivityInput) params.set('olympicRingsThicknessSensitivity', olympicRingsThicknessSensitivityInput.value);
+  if (olympicRingsShowFillInput) params.set('olympicRingsShowFill', olympicRingsShowFillInput.checked ? '1' : '0');
+  if (olympicRingsFillOpacityInput) params.set('olympicRingsFillOpacity', olympicRingsFillOpacityInput.value);
+  if (olympicRingsFillOpacitySensitivityInput) params.set('olympicRingsFillOpacitySensitivity', olympicRingsFillOpacitySensitivityInput.value);
+  if (olympicRingsShowGlowInput) params.set('olympicRingsShowGlow', olympicRingsShowGlowInput.checked ? '1' : '0');
+  if (olympicRingsGlowIntensityInput) params.set('olympicRingsGlowIntensity', olympicRingsGlowIntensityInput.value);
+  if (olympicRingsGlowSensitivityInput) params.set('olympicRingsGlowSensitivity', olympicRingsGlowSensitivityInput.value);
+  if (olympicRingsRingOpacityInput) params.set('olympicRingsRingOpacity', olympicRingsRingOpacityInput.value);
+  if (olympicRingsFrequencySensitivityInput) params.set('olympicRingsFrequencySensitivity', olympicRingsFrequencySensitivityInput.value);
+  if (olympicRingsChannelSensitivityInput) params.set('olympicRingsChannelSensitivity', olympicRingsChannelSensitivityInput.value);
+  
+  // Olympic Rings frequency ranges (stored as JSON)
+  if (window.olympicRingsSettings) {
+    params.set('olympicRingsFrequencies', JSON.stringify(window.olympicRingsSettings.ringFrequencies));
+    params.set('olympicRingsChannels', JSON.stringify(window.olympicRingsSettings.ringChannels));
+  }
+  
+  // Audio Filter settings
+  if (filterEffectSelect) params.set('filterEffect', filterEffectSelect.value);
+  if (filterIntensityInput) params.set('filterIntensity', filterIntensityInput.value);
+  if (filterResponseSelect) params.set('filterResponse', filterResponseSelect.value);
+  if (filterResponseStrengthInput) params.set('filterResponseStrength', filterResponseStrengthInput.value);
+  
+  // Update URL without page reload
+  const newURL = window.location.pathname + '?' + params.toString();
+  window.history.replaceState({}, '', newURL);
+}
+
+// Deserialize URL parameters and apply to settings
+function deserializeSettingsFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  let hasParams = false;
+  
+  // Basic settings
+  if (params.has('mode') && displayModeSelect) {
+    displayModeSelect.value = params.get('mode');
+    displayModeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('theme') && themeSelect) {
+    themeSelect.value = params.get('theme');
+    themeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('inputSource') && inputSourceSelect) {
+    inputSourceSelect.value = params.get('inputSource');
+    inputSourceSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  
+  // Global visual settings
+  if (params.has('afterglow')) {
+    const val = parseFloat(params.get('afterglow'));
+    if (!isNaN(val)) {
+      afterglowOpacity = val;
+      if (afterglowKnob) afterglowKnob.setValue(val);
+      hasParams = true;
+    }
+  }
+  if (params.has('lineWidth')) {
+    const val = parseFloat(params.get('lineWidth'));
+    if (!isNaN(val)) {
+      lineWidth = val;
+      if (lineWidthKnob) lineWidthKnob.setValue(val);
+      hasParams = true;
+    }
+  }
+  if (params.has('smoothing')) {
+    const val = parseFloat(params.get('smoothing'));
+    if (!isNaN(val)) {
+      smoothingFactor = val;
+      if (smoothingKnob) smoothingKnob.setValue(val);
+      hasParams = true;
+    }
+  }
+  
+  // Particle Cloud settings
+  if (params.has('particleCount') && particleCountInput) {
+    particleCountInput.value = params.get('particleCount');
+    particleCountInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('particleSize') && particleSizeInput) {
+    particleSizeInput.value = params.get('particleSize');
+    particleSizeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('eqX') && eqXInput) {
+    eqXInput.value = decodeURIComponent(params.get('eqX'));
+    eqXInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('eqY') && eqYInput) {
+    eqYInput.value = decodeURIComponent(params.get('eqY'));
+    eqYInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('eqZ') && eqZInput) {
+    eqZInput.value = decodeURIComponent(params.get('eqZ'));
+    eqZInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('eqPreset') && eqPresetSelect) {
+    eqPresetSelect.value = params.get('eqPreset');
+    eqPresetSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('particleResponse') && responseModeSelect) {
+    responseModeSelect.value = params.get('particleResponse');
+    responseModeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('rotateX') && rotateXInput) {
+    rotateXInput.checked = params.get('rotateX') === '1';
+    rotateXInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('rotateY') && rotateYInput) {
+    rotateYInput.checked = params.get('rotateY') === '1';
+    rotateYInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('rotateZ') && rotateZInput) {
+    rotateZInput.checked = params.get('rotateZ') === '1';
+    rotateZInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('rotateXSpeed') && rotateXSpeedInput) {
+    rotateXSpeedInput.value = params.get('rotateXSpeed');
+    rotateXSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('rotateYSpeed') && rotateYSpeedInput) {
+    rotateYSpeedInput.value = params.get('rotateYSpeed');
+    rotateYSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('rotateZSpeed') && rotateZSpeedInput) {
+    rotateZSpeedInput.value = params.get('rotateZSpeed');
+    rotateZSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('rotatePreset') && rotatePresetSelect) {
+    rotatePresetSelect.value = params.get('rotatePreset');
+    rotatePresetSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  
+  // Audio rotation settings
+  if (params.has('audioRotation') && audioRotationInput) {
+    audioRotationInput.checked = params.get('audioRotation') === '1';
+    audioRotationInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('audioRotationSource') && audioRotationSourceSelect) {
+    audioRotationSourceSelect.value = params.get('audioRotationSource');
+    audioRotationSourceSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('audioRotationIntensity') && audioRotationIntensityInput) {
+    audioRotationIntensityInput.value = params.get('audioRotationIntensity');
+    audioRotationIntensityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // Audio morph settings
+  if (params.has('audioMorph') && audioMorphInput) {
+    audioMorphInput.checked = params.get('audioMorph') === '1';
+    audioMorphInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('audioMorphSource') && audioMorphSourceSelect) {
+    audioMorphSourceSelect.value = params.get('audioMorphSource');
+    audioMorphSourceSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('audioMorphIntensity') && audioMorphIntensityInput) {
+    audioMorphIntensityInput.value = params.get('audioMorphIntensity');
+    audioMorphIntensityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // Fourier settings
+  if (params.has('fourierHarmonics') && fourierHarmonicsInput) {
+    fourierHarmonicsInput.value = params.get('fourierHarmonics');
+    fourierHarmonicsInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('fourierContribution') && fourierContributionInput) {
+    fourierContributionInput.value = params.get('fourierContribution');
+    fourierContributionInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // Orbitals settings
+  if (params.has('orbitalsShowPaths') && orbitalsShowPathsInput) {
+    orbitalsShowPathsInput.checked = params.get('orbitalsShowPaths') === '1';
+    orbitalsShowPathsInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('orbitalsPlanetSize') && orbitalsPlanetSizeInput) {
+    orbitalsPlanetSizeInput.value = params.get('orbitalsPlanetSize');
+    orbitalsPlanetSizeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('orbitals3D') && orbitals3DInput) {
+    orbitals3DInput.checked = params.get('orbitals3D') === '1';
+    orbitals3DInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('orbitalsTilt') && orbitalsTiltInput) {
+    orbitalsTiltInput.value = params.get('orbitalsTilt');
+    orbitalsTiltInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('orbitalsDepth') && orbitalsDepthInput) {
+    orbitalsDepthInput.value = params.get('orbitalsDepth');
+    orbitalsDepthInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('orbitalsSpin') && orbitalsSpinInput) {
+    orbitalsSpinInput.value = params.get('orbitalsSpin');
+    orbitalsSpinInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // GoL settings
+  if (params.has('golCellSize') && golCellSizeInput) {
+    golCellSizeInput.value = params.get('golCellSize');
+    golCellSizeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('golReseed') && golReseedInput) {
+    golReseedInput.value = params.get('golReseed');
+    golReseedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('golBirthBoost') && golBirthBoostInput) {
+    golBirthBoostInput.value = params.get('golBirthBoost');
+    golBirthBoostInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('golSurvivalBoost') && golSurvivalBoostInput) {
+    golSurvivalBoostInput.value = params.get('golSurvivalBoost');
+    golSurvivalBoostInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // Mesh settings
+  if (params.has('meshResponse') && meshResponseSelect) {
+    meshResponseSelect.value = params.get('meshResponse');
+    meshResponseSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshResolution') && meshResolutionInput) {
+    meshResolutionInput.value = params.get('meshResolution');
+    meshResolutionInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('meshWireframe') && meshWireframeInput) {
+    meshWireframeInput.checked = params.get('meshWireframe') === '1';
+    meshWireframeInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshFilled') && meshFilledInput) {
+    meshFilledInput.checked = params.get('meshFilled') === '1';
+    meshFilledInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshEqX') && meshEqXInput) {
+    meshEqXInput.value = decodeURIComponent(params.get('meshEqX'));
+    meshEqXInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshEqY') && meshEqYInput) {
+    meshEqYInput.value = decodeURIComponent(params.get('meshEqY'));
+    meshEqYInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshEqZ') && meshEqZInput) {
+    meshEqZInput.value = decodeURIComponent(params.get('meshEqZ'));
+    meshEqZInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshEqPreset') && meshEqPresetSelect) {
+    meshEqPresetSelect.value = params.get('meshEqPreset');
+    meshEqPresetSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateX') && meshRotateXInput) {
+    meshRotateXInput.checked = params.get('meshRotateX') === '1';
+    meshRotateXInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateY') && meshRotateYInput) {
+    meshRotateYInput.checked = params.get('meshRotateY') === '1';
+    meshRotateYInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateZ') && meshRotateZInput) {
+    meshRotateZInput.checked = params.get('meshRotateZ') === '1';
+    meshRotateZInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateXSpeed') && meshRotateXSpeedInput) {
+    meshRotateXSpeedInput.value = params.get('meshRotateXSpeed');
+    meshRotateXSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateYSpeed') && meshRotateYSpeedInput) {
+    meshRotateYSpeedInput.value = params.get('meshRotateYSpeed');
+    meshRotateYSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('meshRotateZSpeed') && meshRotateZSpeedInput) {
+    meshRotateZSpeedInput.value = params.get('meshRotateZSpeed');
+    meshRotateZSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // MFCC settings
+  if (params.has('mfccSubdivisionMode') && mfccSubdivisionModeSelect) {
+    mfccSubdivisionModeSelect.value = params.get('mfccSubdivisionMode');
+    mfccSubdivisionModeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('mfccSubdivision') && mfccSubdivisionSelect) {
+    mfccSubdivisionSelect.value = params.get('mfccSubdivision');
+    mfccSubdivisionSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('mfccTimeSubdivision') && mfccTimeSubdivisionInput) {
+    mfccTimeSubdivisionInput.value = params.get('mfccTimeSubdivision');
+    mfccTimeSubdivisionInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('mfccBeatSensitivity') && mfccBeatSensitivityInput) {
+    mfccBeatSensitivityInput.value = params.get('mfccBeatSensitivity');
+    mfccBeatSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('mfccPointLifetime') && mfccPointLifetimeInput) {
+    mfccPointLifetimeInput.value = params.get('mfccPointLifetime');
+    mfccPointLifetimeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('mfccPointSize') && mfccPointSizeInput) {
+    mfccPointSizeInput.value = params.get('mfccPointSize');
+    mfccPointSizeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('mfccMaxPoints') && mfccMaxPointsInput) {
+    mfccMaxPointsInput.value = params.get('mfccMaxPoints');
+    mfccMaxPointsInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('mfccShowTrail') && mfccShowTrailInput) {
+    mfccShowTrailInput.checked = params.get('mfccShowTrail') === '1';
+    mfccShowTrailInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('mfccDimensions') && mfccDimensionsSelect) {
+    mfccDimensionsSelect.value = params.get('mfccDimensions');
+    mfccDimensionsSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('mfccVisualizationMode') && mfccVisualizationModeSelect) {
+    mfccVisualizationModeSelect.value = params.get('mfccVisualizationMode');
+    mfccVisualizationModeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  
+  // Olympic Rings settings
+  if (params.has('olympicRingsMode') && olympicRingsModeSelect) {
+    olympicRingsModeSelect.value = params.get('olympicRingsMode');
+    olympicRingsModeSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsBeatSource') && olympicRingsBeatSourceInput) {
+    olympicRingsBeatSourceInput.value = params.get('olympicRingsBeatSource');
+    olympicRingsBeatSourceInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsBeatThreshold') && olympicRingsBeatThresholdInput) {
+    olympicRingsBeatThresholdInput.value = params.get('olympicRingsBeatThreshold');
+    olympicRingsBeatThresholdInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsBeatDecay') && olympicRingsBeatDecayInput) {
+    olympicRingsBeatDecayInput.value = params.get('olympicRingsBeatDecay');
+    olympicRingsBeatDecayInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsBeatMinInterval') && olympicRingsBeatMinIntervalInput) {
+    olympicRingsBeatMinIntervalInput.value = params.get('olympicRingsBeatMinInterval');
+    olympicRingsBeatMinIntervalInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsBeatSensitivity') && olympicRingsBeatSensitivityInput) {
+    olympicRingsBeatSensitivityInput.value = params.get('olympicRingsBeatSensitivity');
+    olympicRingsBeatSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSize') && olympicRingsSizeInput) {
+    olympicRingsSizeInput.value = params.get('olympicRingsSize');
+    olympicRingsSizeInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsThickness') && olympicRingsThicknessInput) {
+    olympicRingsThicknessInput.value = params.get('olympicRingsThickness');
+    olympicRingsThicknessInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsResponseSpeed') && olympicRingsResponseSpeedInput) {
+    olympicRingsResponseSpeedInput.value = params.get('olympicRingsResponseSpeed');
+    olympicRingsResponseSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsRotationSpeed') && olympicRingsRotationSpeedInput) {
+    olympicRingsRotationSpeedInput.value = params.get('olympicRingsRotationSpeed');
+    olympicRingsRotationSpeedInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSpacing') && olympicRingsSpacingInput) {
+    olympicRingsSpacingInput.value = params.get('olympicRingsSpacing');
+    olympicRingsSpacingInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsLayoutScale') && olympicRingsLayoutScaleInput) {
+    olympicRingsLayoutScaleInput.value = params.get('olympicRingsLayoutScale');
+    olympicRingsLayoutScaleInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsHorizontalOffset') && olympicRingsHorizontalOffsetInput) {
+    olympicRingsHorizontalOffsetInput.value = params.get('olympicRingsHorizontalOffset');
+    olympicRingsHorizontalOffsetInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsVerticalOffset') && olympicRingsVerticalOffsetInput) {
+    olympicRingsVerticalOffsetInput.value = params.get('olympicRingsVerticalOffset');
+    olympicRingsVerticalOffsetInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSizeMinScale') && olympicRingsSizeMinScaleInput) {
+    olympicRingsSizeMinScaleInput.value = params.get('olympicRingsSizeMinScale');
+    olympicRingsSizeMinScaleInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSizeMaxScale') && olympicRingsSizeMaxScaleInput) {
+    olympicRingsSizeMaxScaleInput.value = params.get('olympicRingsSizeMaxScale');
+    olympicRingsSizeMaxScaleInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSizeSensitivity') && olympicRingsSizeSensitivityInput) {
+    olympicRingsSizeSensitivityInput.value = params.get('olympicRingsSizeSensitivity');
+    olympicRingsSizeSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsThicknessMinScale') && olympicRingsThicknessMinScaleInput) {
+    olympicRingsThicknessMinScaleInput.value = params.get('olympicRingsThicknessMinScale');
+    olympicRingsThicknessMinScaleInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsThicknessMaxScale') && olympicRingsThicknessMaxScaleInput) {
+    olympicRingsThicknessMaxScaleInput.value = params.get('olympicRingsThicknessMaxScale');
+    olympicRingsThicknessMaxScaleInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsThicknessSensitivity') && olympicRingsThicknessSensitivityInput) {
+    olympicRingsThicknessSensitivityInput.value = params.get('olympicRingsThicknessSensitivity');
+    olympicRingsThicknessSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsShowFill') && olympicRingsShowFillInput) {
+    olympicRingsShowFillInput.checked = params.get('olympicRingsShowFill') === '1';
+    olympicRingsShowFillInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsFillOpacity') && olympicRingsFillOpacityInput) {
+    olympicRingsFillOpacityInput.value = params.get('olympicRingsFillOpacity');
+    olympicRingsFillOpacityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsFillOpacitySensitivity') && olympicRingsFillOpacitySensitivityInput) {
+    olympicRingsFillOpacitySensitivityInput.value = params.get('olympicRingsFillOpacitySensitivity');
+    olympicRingsFillOpacitySensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsShowGlow') && olympicRingsShowGlowInput) {
+    olympicRingsShowGlowInput.checked = params.get('olympicRingsShowGlow') === '1';
+    olympicRingsShowGlowInput.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsGlowIntensity') && olympicRingsGlowIntensityInput) {
+    olympicRingsGlowIntensityInput.value = params.get('olympicRingsGlowIntensity');
+    olympicRingsGlowIntensityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsGlowSensitivity') && olympicRingsGlowSensitivityInput) {
+    olympicRingsGlowSensitivityInput.value = params.get('olympicRingsGlowSensitivity');
+    olympicRingsGlowSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsRingOpacity') && olympicRingsRingOpacityInput) {
+    olympicRingsRingOpacityInput.value = params.get('olympicRingsRingOpacity');
+    olympicRingsRingOpacityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsFrequencySensitivity') && olympicRingsFrequencySensitivityInput) {
+    olympicRingsFrequencySensitivityInput.value = params.get('olympicRingsFrequencySensitivity');
+    olympicRingsFrequencySensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsChannelSensitivity') && olympicRingsChannelSensitivityInput) {
+    olympicRingsChannelSensitivityInput.value = params.get('olympicRingsChannelSensitivity');
+    olympicRingsChannelSensitivityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  // Olympic Rings frequency ranges and channels
+  if (params.has('olympicRingsFrequencies') && window.olympicRingsSettings) {
+    try {
+      const frequencies = JSON.parse(params.get('olympicRingsFrequencies'));
+      if (Array.isArray(frequencies) && frequencies.length === 5) {
+        window.olympicRingsSettings.ringFrequencies = frequencies;
+        hasParams = true;
+      }
+    } catch (e) {
+      console.warn('Failed to parse olympicRingsFrequencies:', e);
+    }
+  }
+  if (params.has('olympicRingsChannels') && window.olympicRingsSettings) {
+    try {
+      const channels = JSON.parse(params.get('olympicRingsChannels'));
+      if (Array.isArray(channels) && channels.length === 5) {
+        window.olympicRingsSettings.ringChannels = channels;
+        hasParams = true;
+      }
+    } catch (e) {
+      console.warn('Failed to parse olympicRingsChannels:', e);
+    }
+  }
+  
+  // Audio Filter settings
+  if (params.has('filterEffect') && filterEffectSelect) {
+    filterEffectSelect.value = params.get('filterEffect');
+    filterEffectSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('filterIntensity') && filterIntensityInput) {
+    filterIntensityInput.value = params.get('filterIntensity');
+    filterIntensityInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('filterResponse') && filterResponseSelect) {
+    filterResponseSelect.value = params.get('filterResponse');
+    filterResponseSelect.dispatchEvent(new Event('change'));
+    hasParams = true;
+  }
+  if (params.has('filterResponseStrength') && filterResponseStrengthInput) {
+    filterResponseStrengthInput.value = params.get('filterResponseStrength');
+    filterResponseStrengthInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  
+  return hasParams;
+}
+
+// Debounce function to avoid too frequent URL updates
+let urlUpdateTimeout = null;
+function updateURLDebounced() {
+  if (urlUpdateTimeout) clearTimeout(urlUpdateTimeout);
+  urlUpdateTimeout = setTimeout(() => {
+    serializeSettingsToURL();
+  }, 300); // Update URL 300ms after last change
+}
+
+// Make function globally accessible for knob controls
+window.updateURLDebounced = updateURLDebounced;
+
+// Attach URL update listeners to all controls
+function attachURLUpdateListeners() {
+  // Get all input, select, and checkbox elements in controls
+  const controls = document.getElementById('controls');
+  if (!controls) return;
+  
+  // Use event delegation to catch all changes
+  controls.addEventListener('change', updateURLDebounced);
+  controls.addEventListener('input', updateURLDebounced);
+}
+
+// Initialize URL parameter system
+if (!window.isSettingsWindow) {
+  // Load settings from URL on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    // Wait a bit for all controls to be initialized
+    setTimeout(() => {
+      deserializeSettingsFromURL();
+      attachURLUpdateListeners();
+    }, 100);
+  });
+  
+  // Also try immediately if DOM is already loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        deserializeSettingsFromURL();
+        attachURLUpdateListeners();
+      }, 100);
+    });
+  } else {
+    setTimeout(() => {
+      deserializeSettingsFromURL();
+      attachURLUpdateListeners();
+    }, 100);
+  }
+} 

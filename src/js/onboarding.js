@@ -27,7 +27,7 @@ class Onboarding {
         },
         {
           title: "Explore Display Modes",
-          content: "Choose from 12 different visualization modes including Waveform, FFT Spectrum, 3D visualizations, Particle Cloud, and even Game of Life driven by audio!",
+          content: "Choose from 13 different visualization modes including Waveform, FFT Spectrum, 3D visualizations, Particle Cloud, Game of Life, and MFCC Trajectory driven by audio!",
           target: "#displayMode",
           position: "right",
           highlight: true

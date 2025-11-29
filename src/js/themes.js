@@ -59,6 +59,10 @@ const themes = {
     glow: "#FFFFFF", border: "#FFFFFF", label: "#FFFFFF", background: "#000000",
     gradient: ['#000000', '#888888', '#FFFFFF']
   },
+  olympic: { 
+    glow: "#0085C7", border: "#0085C7", label: "#FFFFFF", background: "#FFFFFF",
+    gradient: ['#FFFFFF', '#0085C7', '#F4C300']
+  },
 };
 
 

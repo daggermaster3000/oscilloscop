@@ -20,6 +20,10 @@ const afterglowKnob = new Knob(knobContainer, {
   value: afterglowOpacity,
   onChange: (value) => {
     afterglowOpacity = value;
+    // Trigger URL update
+    if (typeof window.updateURLDebounced === 'function') {
+      window.updateURLDebounced();
+    }
   }
 });
 
@@ -31,6 +35,10 @@ const lineWidthKnob = new Knob(knobContainer, {
   value: lineWidth,
   onChange: (value) => {
     lineWidth = value;
+    // Trigger URL update
+    if (typeof window.updateURLDebounced === 'function') {
+      window.updateURLDebounced();
+    }
   }
 });
 
@@ -42,6 +50,10 @@ const smoothingKnob = new Knob(knobContainer, {
   value: smoothingFactor,
   onChange: (value) => {
     smoothingFactor = value;
+    // Trigger URL update
+    if (typeof window.updateURLDebounced === 'function') {
+      window.updateURLDebounced();
+    }
   }
 });
 
@@ -1197,6 +1209,317 @@ function applyGlitchFilter(intensity) {
   }
 }
 
+// --- Olympic Rings Visualization ---
+window.olympicRingsSettings = {
+  mode: 'frequency', // 'frequency', 'channel', or 'beat'
+  ringFrequencies: [
+    { min: 0, max: 200 },   // Ring 1: Low bass
+    { min: 200, max: 500 }, // Ring 2: Mid bass
+    { min: 500, max: 1000 }, // Ring 3: Low mids
+    { min: 1000, max: 3000 }, // Ring 4: Mids
+    { min: 3000, max: 8000 }  // Ring 5: Highs
+  ],
+  ringChannels: [0, 1, 0, 1, 0], // Channel indices for channel mode (0=left, 1=right)
+  ringColors: ['#0085C7', '#F4C300', '#000000', '#009F3D', '#DF0024'], // Olympic ring colors
+  // Beat detection parameters
+  beatThreshold: 0.3, // Beat detection threshold
+  beatDecay: 0.95, // How fast beat pulses decay
+  beatMinInterval: 100, // Minimum time between beats (ms)
+  beatSensitivity: 1.0, // Multiplier for beat mode
+  beatSource: 'frequency', // 'frequency' or 'channel' - where to detect beats from
+  ringSize: 120,
+  ringThickness: 12,
+  ringSpacing: 20,
+  responseSpeed: 0.3,
+  rotationSpeed: 0.0,
+  // Size and scaling parameters
+  sizeMinScale: 0.7, // Minimum size multiplier
+  sizeMaxScale: 1.7, // Maximum size multiplier
+  sizeSensitivity: 1.0, // How much size responds to audio
+  thicknessMinScale: 1.0, // Minimum thickness multiplier
+  thicknessMaxScale: 1.5, // Maximum thickness multiplier
+  thicknessSensitivity: 0.5, // How much thickness responds to audio
+  // Visual parameters
+  showFill: false, // Show ring fill
+  fillOpacity: 0.3, // Base fill opacity
+  fillOpacitySensitivity: 0.4, // How much fill opacity responds
+  showGlow: false, // Show ring glow/shadow
+  glowIntensity: 15, // Base glow blur
+  glowSensitivity: 20, // How much glow responds to audio
+  ringOpacity: 1.0, // Overall ring opacity
+  // Mode-specific parameters
+  frequencySensitivity: 1.0, // Multiplier for frequency mode
+  channelSensitivity: 1.0, // Multiplier for channel mode
+  // Layout parameters
+  layoutScale: 1.0, // Overall layout scale
+  verticalOffset: 0, // Vertical offset of entire layout
+  horizontalOffset: 0 // Horizontal offset of entire layout
+};
+
+let olympicRingLevels = [0, 0, 0, 0, 0]; // Current audio levels for each ring
+let olympicRingBeatDetectors = [
+  { lastBeatTime: 0, energyHistory: [], threshold: 0.3 },
+  { lastBeatTime: 0, energyHistory: [], threshold: 0.3 },
+  { lastBeatTime: 0, energyHistory: [], threshold: 0.3 },
+  { lastBeatTime: 0, energyHistory: [], threshold: 0.3 },
+  { lastBeatTime: 0, energyHistory: [], threshold: 0.3 }
+]; // Beat detectors for each ring
+let olympicRingBeatPulses = [0, 0, 0, 0, 0]; // Beat pulse values for each ring (0-1)
+
+function drawOlympicRings() {
+  analyser.getByteFrequencyData(dataArray);
+  const sampleRate = audioCtx.sampleRate;
+  const binSize = sampleRate / 2 / bufferLength;
+  
+  const now = performance.now();
+  const settings = window.olympicRingsSettings;
+  
+  // Calculate levels for each ring
+  for (let i = 0; i < 5; i++) {
+    let level = 0;
+    let energy = 0; // Energy for beat detection
+    
+    if (settings.mode === 'frequency') {
+      // Frequency-based mode
+      const freqRange = settings.ringFrequencies[i];
+      const startBin = Math.floor(freqRange.min / binSize);
+      const endBin = Math.floor(freqRange.max / binSize);
+      
+      let sum = 0;
+      let count = 0;
+      for (let j = startBin; j <= endBin && j < bufferLength; j++) {
+        sum += dataArray[j];
+        count++;
+      }
+      level = count > 0 ? sum / count / 255 : 0;
+      energy = level; // Use same energy for beat detection in frequency mode
+    } else if (settings.mode === 'beat') {
+      // Beat detection mode - use frequency or channel based on beat source
+      if (settings.beatSource === 'frequency') {
+        // Frequency-based beat detection
+        const freqRange = settings.ringFrequencies[i];
+        const startBin = Math.floor(freqRange.min / binSize);
+        const endBin = Math.floor(freqRange.max / binSize);
+        
+        let sum = 0;
+        let count = 0;
+        for (let j = startBin; j <= endBin && j < bufferLength; j++) {
+          sum += dataArray[j];
+          count++;
+        }
+        energy = count > 0 ? sum / count / 255 : 0;
+      } else {
+        // Channel-based beat detection
+        const channel = settings.ringChannels[i];
+        
+        let channelAnalyser = null;
+        let channelData = null;
+        
+        if (typeof window.channelAnalysers !== 'undefined' && window.channelAnalysers && window.channelAnalysers.length > channel) {
+          channelAnalyser = window.channelAnalysers[channel];
+          channelData = new Uint8Array(channelAnalyser.frequencyBinCount);
+          channelAnalyser.getByteFrequencyData(channelData);
+        } else {
+          if (channel === 0 && analyserLeft) {
+            channelAnalyser = analyserLeft;
+            channelData = stereoDataLeft;
+            analyserLeft.getByteFrequencyData(stereoDataLeft);
+          } else if (channel === 1 && analyserRight) {
+            channelAnalyser = analyserRight;
+            channelData = stereoDataRight;
+            analyserRight.getByteFrequencyData(stereoDataRight);
+          }
+        }
+        
+        if (channelData && channelAnalyser) {
+          let sum = 0;
+          const bufferLength = channelAnalyser.frequencyBinCount;
+          for (let j = 0; j < bufferLength; j++) {
+            sum += channelData[j];
+          }
+          energy = bufferLength > 0 ? sum / bufferLength / 255 : 0;
+        } else {
+          energy = 0;
+        }
+      }
+      
+      // Beat detection for this ring
+      const detector = olympicRingBeatDetectors[i];
+      
+      // Add energy to history
+      detector.energyHistory.push(energy);
+      if (detector.energyHistory.length > 20) {
+        detector.energyHistory.shift();
+      }
+      
+      // Calculate dynamic threshold
+      if (detector.energyHistory.length >= 5) {
+        const recentEnergy = detector.energyHistory.slice(-5);
+        const avgEnergy = recentEnergy.reduce((a, b) => a + b, 0) / recentEnergy.length;
+        const maxEnergy = Math.max(...recentEnergy);
+        detector.threshold = avgEnergy + (maxEnergy - avgEnergy) * settings.beatThreshold;
+      }
+      
+      // Detect beat
+      const isBeat = energy > detector.threshold && 
+                     (now - detector.lastBeatTime) > settings.beatMinInterval;
+      
+      if (isBeat) {
+        detector.lastBeatTime = now;
+        olympicRingBeatPulses[i] = 1.0; // Set pulse to maximum
+      } else {
+        // Decay pulse over time
+        olympicRingBeatPulses[i] *= settings.beatDecay;
+      }
+      
+      // Use pulse value for level
+      level = olympicRingBeatPulses[i] * settings.beatSensitivity;
+    } else {
+      // Channel-based mode - use frequency data from selected audio interface channel
+      const channel = window.olympicRingsSettings.ringChannels[i];
+      
+      // Use channelAnalysers array if available (multi-channel audio interface)
+      // Otherwise fall back to analyserLeft/Right for backward compatibility
+      let channelAnalyser = null;
+      let channelData = null;
+      
+      if (typeof window.channelAnalysers !== 'undefined' && window.channelAnalysers && window.channelAnalysers.length > channel) {
+        // Multi-channel mode
+        channelAnalyser = window.channelAnalysers[channel];
+        channelData = new Uint8Array(channelAnalyser.frequencyBinCount);
+        channelAnalyser.getByteFrequencyData(channelData);
+      } else {
+        // Fallback to stereo mode
+        if (channel === 0 && analyserLeft) {
+          channelAnalyser = analyserLeft;
+          channelData = stereoDataLeft;
+          analyserLeft.getByteFrequencyData(stereoDataLeft);
+        } else if (channel === 1 && analyserRight) {
+          channelAnalyser = analyserRight;
+          channelData = stereoDataRight;
+          analyserRight.getByteFrequencyData(stereoDataRight);
+        } else {
+          level = 0;
+          continue;
+        }
+      }
+      
+      if (channelData && channelAnalyser) {
+        let sum = 0;
+        const bufferLength = channelAnalyser.frequencyBinCount;
+        for (let j = 0; j < bufferLength; j++) {
+          sum += channelData[j];
+        }
+        level = bufferLength > 0 ? sum / bufferLength / 10 :0;
+      } else {
+        level = 0;
+      }
+    }
+    
+  // Apply mode-specific sensitivity (only for frequency and channel modes, beat mode uses pulse directly)
+  if (settings.mode !== 'beat') {
+    const sensitivity = settings.mode === 'frequency' 
+      ? settings.frequencySensitivity 
+      : settings.channelSensitivity;
+    level *= sensitivity;
+    
+    // Smooth the level changes
+    olympicRingLevels[i] += (level - olympicRingLevels[i]) * settings.responseSpeed;
+  } else {
+    // For beat mode, use pulse directly without smoothing (beats are instantaneous)
+    olympicRingLevels[i] = level;
+  }
+  }
+  
+  // Use white background for Olympic theme - skip afterglow effect
+  if (theme.background === "#FFFFFF") {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    applyAfterglowEffect();
+  }
+  
+  drawGrid("olympic");
+  
+  ctx.save();
+  ctx.translate(
+    canvas.width / 2 + window.olympicRingsSettings.horizontalOffset,
+    canvas.height / 2 + window.olympicRingsSettings.verticalOffset
+  );
+  
+  const size = window.olympicRingsSettings.ringSize * window.olympicRingsSettings.layoutScale;
+  const thickness = window.olympicRingsSettings.ringThickness;
+  const spacing = window.olympicRingsSettings.ringSpacing;
+  
+  // Rotation animation
+  const rotation = performance.now() * 0.001 * window.olympicRingsSettings.rotationSpeed;
+  ctx.rotate(rotation);
+  
+  // Olympic rings arrangement:
+  // Top row: rings 1, 2, 3 (blue, yellow, black)
+  // Bottom row: rings 4, 5 (green, red) - offset
+  
+  const rings = [
+    { x: -size - spacing, y: -size/2, color: window.olympicRingsSettings.ringColors[0] }, // Ring 1 (top left)
+    { x: 0, y: -size/2, color: window.olympicRingsSettings.ringColors[2] }, // Ring 2 (top center)
+    { x: size + spacing, y: -size/2, color: window.olympicRingsSettings.ringColors[4] }, // Ring 3 (top right)
+    { x: -(size + spacing)/2, y: size/2, color: window.olympicRingsSettings.ringColors[1] }, // Ring 4 (bottom left)
+    { x: (size + spacing)/2, y: size/2, color: window.olympicRingsSettings.ringColors[3] } // Ring 5 (bottom right)
+  ];
+  
+  // Draw rings
+  for (let i = 0; i < 5; i++) {
+    const ring = rings[i];
+    const level = olympicRingLevels[i];
+    const settings = window.olympicRingsSettings;
+    
+    // Calculate dynamic size based on audio level with configurable range
+    const sizeRange = settings.sizeMaxScale - settings.sizeMinScale;
+    const currentSize = size * (settings.sizeMinScale + level * sizeRange * settings.sizeSensitivity);
+    
+    // Calculate dynamic thickness based on audio level with configurable range
+    const thicknessRange = settings.thicknessMaxScale - settings.thicknessMinScale;
+    const currentThickness = thickness * (settings.thicknessMinScale + level * thicknessRange * settings.thicknessSensitivity);
+    
+    // Set overall ring opacity
+    ctx.globalAlpha = settings.ringOpacity;
+    
+    // Draw ring shadow/glow if enabled
+    if (settings.showGlow) {
+      ctx.shadowBlur = theme.cartoon ? 0 : settings.glowIntensity + level * settings.glowSensitivity;
+      ctx.shadowColor = ring.color;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+    
+    // Draw ring outline
+    ctx.strokeStyle = ring.color;
+    ctx.lineWidth = currentThickness;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    ctx.beginPath();
+    ctx.arc(ring.x, ring.y, currentSize / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Draw ring fill if enabled
+    if (settings.showFill) {
+      ctx.fillStyle = ring.color;
+      const fillAlpha = settings.fillOpacity + level * settings.fillOpacitySensitivity;
+      ctx.globalAlpha = Math.min(1.0, fillAlpha * settings.ringOpacity);
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, currentSize / 2 - currentThickness / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.globalAlpha = 1.0;
+  }
+  
+  ctx.restore();
+  drawGrain();
+  applyAudioReactiveFilter();
+}
+
 function applyVHSNoiseFilter(intensity) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
@@ -1225,4 +1548,688 @@ function applyVHSNoiseFilter(intensity) {
   }
   
   ctx.putImageData(imageData, 0, 0);
+}
+
+// --- MFCC Trajectory Visualization ---
+let mfccHistory = [];
+let mfccPCAModel = null;
+const maxMFCCHistory = 200; // Number of frames to keep for trajectory
+let mfccTrajectoryPoints = []; // Store projected points for visualization
+let mfccDataRange = { min: [-1, -1, -1], max: [1, 1, 1] }; // Track data range for scaling
+let mfccPointHistory = []; // Store individual points with timestamps
+let mfccCurrentPoint = null; // Current point position
+
+// Function to clear MFCC data when audio is paused
+function clearMFCCHistory() {
+  mfccHistory = [];
+  mfccPointHistory = [];
+  mfccPCAModel = null;
+  mfccCurrentPoint = null;
+  mfccDataRange = { min: [-1, -1, -1], max: [1, 1, 1] };
+  // Reset update timer so it starts immediately when audio resumes
+  if (window.mfccBeatDetector) {
+    window.mfccBeatDetector.lastUpdateTime = 0;
+  }
+}
+
+// Beat detection for MFCC updates
+window.mfccBeatDetector = {
+  lastBeatTime: 0,
+  beatInterval: 500, // Initial estimate in ms
+  beatHistory: [],
+  energyHistory: [],
+  maxHistory: 20,
+  threshold: 0.3,
+  subdivision: 1, // 1 = beat, 2 = half-beat, 4 = quarter-beat
+  subdivisionMode: 'beat', // 'beat' or 'time'
+  timeSubdivision: 100, // ms between updates when in time mode
+  lastUpdateTime: 0,
+  // Visualization parameters
+  pointLifetime: 3000, // How long points stay visible (ms)
+  pointSize: 4, // Base point size
+  pointGlowSize: 8, // Glow size for new points
+  showTrail: false, // Whether to show connecting lines
+  maxPoints: 50, // Maximum number of points to show
+  fadeSpeed: 0.02, // How fast points fade out
+  dimensions: 3, // Number of PCA dimensions (1, 2, or 3)
+  visualizationMode: 'points' // 'points', 'radial', 'wave', 'spiral', 'filter'
+};
+
+// Simplified MFCC calculation
+function calculateMFCC(frequencyData, sampleRate = 44100) {
+  const numCoeffs = 40;
+  const mfccs = new Array(numCoeffs).fill(0);
+  
+  // Convert frequency data to power spectrum
+  const powerSpectrum = [];
+  for (let i = 0; i < frequencyData.length; i++) {
+    powerSpectrum.push(Math.pow(frequencyData[i] / 255.0, 2));
+  }
+  
+  // Simplified mel-scale filter bank
+  const numFilters = 26;
+  const melFilters = createMelFilters(numFilters, powerSpectrum.length, sampleRate);
+  
+  // Apply mel filters
+  const melEnergies = new Array(numFilters).fill(0);
+  for (let i = 0; i < numFilters; i++) {
+    for (let j = 0; j < powerSpectrum.length; j++) {
+      melEnergies[i] += powerSpectrum[j] * melFilters[i][j];
+    }
+    // Log and avoid log(0)
+    melEnergies[i] = Math.log(Math.max(melEnergies[i], 1e-10));
+  }
+  
+  // Apply DCT to get MFCCs
+  for (let i = 0; i < numCoeffs; i++) {
+    for (let j = 0; j < numFilters; j++) {
+      mfccs[i] += melEnergies[j] * Math.cos(Math.PI * i * (j + 0.5) / numFilters);
+    }
+  }
+  
+  return mfccs;
+}
+
+// Create mel-scale filter bank
+function createMelFilters(numFilters, fftSize, sampleRate) {
+  const filters = [];
+  const nyquist = sampleRate / 2;
+  
+  // Convert Hz to mel scale
+  const hzToMel = (hz) => 2595 * Math.log10(1 + hz / 700);
+  const melToHz = (mel) => 700 * (Math.pow(10, mel / 2595) - 1);
+  
+  // Create mel-scale points
+  const melPoints = [];
+  const melMax = hzToMel(nyquist);
+  for (let i = 0; i <= numFilters + 1; i++) {
+    melPoints.push((i * melMax) / (numFilters + 1));
+  }
+  
+  // Convert back to Hz and then to FFT bins
+  const hzPoints = melPoints.map(melToHz);
+  const binPoints = hzPoints.map(hz => Math.floor((hz / nyquist) * fftSize));
+  
+  // Create triangular filters
+  for (let i = 0; i < numFilters; i++) {
+    const filter = new Array(fftSize).fill(0);
+    const left = binPoints[i];
+    const center = binPoints[i + 1];
+    const right = binPoints[i + 2];
+    
+    // Rising edge
+    for (let j = left; j < center; j++) {
+      if (j >= 0 && j < fftSize) {
+        filter[j] = (j - left) / (center - left);
+      }
+    }
+    
+    // Falling edge
+    for (let j = center; j < right; j++) {
+      if (j >= 0 && j < fftSize) {
+        filter[j] = (right - j) / (right - center);
+      }
+    }
+    
+    filters.push(filter);
+  }
+  
+  return filters;
+}
+
+// Beat detection for MFCC updates
+function detectBeatForMFCC(frequencyData) {
+  const now = performance.now();
+  
+  // Calculate energy in bass frequencies (typically 20-250 Hz)
+  const bassEnergy = calculateBassEnergy(frequencyData);
+  
+  // Add to energy history
+  window.mfccBeatDetector.energyHistory.push(bassEnergy);
+  if (window.mfccBeatDetector.energyHistory.length > window.mfccBeatDetector.maxHistory) {
+    window.mfccBeatDetector.energyHistory.shift();
+  }
+  
+  // Calculate dynamic threshold based on recent energy
+  if (window.mfccBeatDetector.energyHistory.length >= 5) {
+    const recentEnergy = window.mfccBeatDetector.energyHistory.slice(-5);
+    const avgEnergy = recentEnergy.reduce((sum, e) => sum + e, 0) / recentEnergy.length;
+    const maxEnergy = Math.max(...recentEnergy);
+    window.mfccBeatDetector.threshold = avgEnergy + (maxEnergy - avgEnergy) * 0.3;
+  }
+  
+  // Detect beat
+  const isBeat = bassEnergy > window.mfccBeatDetector.threshold && 
+                 (now - window.mfccBeatDetector.lastBeatTime) > (window.mfccBeatDetector.beatInterval * 0.5);
+  
+  if (isBeat) {
+    // Update beat interval estimation
+    if (window.mfccBeatDetector.lastBeatTime > 0) {
+      const interval = now - window.mfccBeatDetector.lastBeatTime;
+      window.mfccBeatDetector.beatHistory.push(interval);
+      if (window.mfccBeatDetector.beatHistory.length > window.mfccBeatDetector.maxHistory) {
+        window.mfccBeatDetector.beatHistory.shift();
+      }
+      
+      // Calculate average beat interval
+      if (window.mfccBeatDetector.beatHistory.length >= 3) {
+        window.mfccBeatDetector.beatInterval = window.mfccBeatDetector.beatHistory.reduce((sum, i) => sum + i, 0) / window.mfccBeatDetector.beatHistory.length;
+      }
+    }
+    
+    window.mfccBeatDetector.lastBeatTime = now;
+    return true;
+  }
+  
+  return false;
+}
+
+// Calculate bass energy from frequency data
+function calculateBassEnergy(frequencyData) {
+  // Focus on bass frequencies (roughly first 10% of frequency bins)
+  const bassBins = Math.floor(frequencyData.length * 0.1);
+  let energy = 0;
+  
+  for (let i = 0; i < bassBins; i++) {
+    energy += frequencyData[i] * frequencyData[i];
+  }
+  
+  return energy / bassBins;
+}
+
+// Check if it's time to update MFCC based on beat subdivision or time
+function shouldUpdateMFCC() {
+  const now = performance.now();
+  
+  if (window.mfccBeatDetector.subdivisionMode === 'time') {
+    // Time-based updates
+    return (now - window.mfccBeatDetector.lastUpdateTime) >= window.mfccBeatDetector.timeSubdivision;
+  } else {
+    // Beat-based updates
+    const subdivisionInterval = window.mfccBeatDetector.beatInterval / window.mfccBeatDetector.subdivision;
+    return (now - window.mfccBeatDetector.lastUpdateTime) >= subdivisionInterval;
+  }
+}
+
+// Simple PCA implementation
+function calculatePCA(data, numComponents = 3) {
+  if (data.length < numComponents) return null;
+  
+  // Center the data
+  const mean = new Array(data[0].length).fill(0);
+  for (let i = 0; i < data.length; i++) {
+    for (let j = 0; j < data[i].length; j++) {
+      mean[j] += data[i][j];
+    }
+  }
+  for (let j = 0; j < mean.length; j++) {
+    mean[j] /= data.length;
+  }
+  
+  const centeredData = data.map(row => 
+    row.map((val, i) => val - mean[i])
+  );
+  
+  // Calculate covariance matrix
+  const covMatrix = [];
+  for (let i = 0; i < mean.length; i++) {
+    covMatrix[i] = new Array(mean.length).fill(0);
+    for (let j = 0; j < mean.length; j++) {
+      for (let k = 0; k < centeredData.length; k++) {
+        covMatrix[i][j] += centeredData[k][i] * centeredData[k][j];
+      }
+      covMatrix[i][j] /= centeredData.length;
+    }
+  }
+  
+  // Simple eigenvalue decomposition (simplified)
+  // For visualization purposes, we'll use a simplified approach
+  const eigenvectors = [];
+  for (let i = 0; i < numComponents; i++) {
+    eigenvectors[i] = new Array(mean.length).fill(0);
+    // Simple initialization - in practice, you'd use proper eigenvalue decomposition
+    for (let j = 0; j < mean.length; j++) {
+      eigenvectors[i][j] = Math.random() - 0.5;
+    }
+  }
+  
+  // Normalize eigenvectors
+  for (let i = 0; i < eigenvectors.length; i++) {
+    const norm = Math.sqrt(eigenvectors[i].reduce((sum, val) => sum + val * val, 0));
+    for (let j = 0; j < eigenvectors[i].length; j++) {
+      eigenvectors[i][j] /= norm;
+    }
+  }
+  
+  // Project data onto principal components
+  const projectedData = [];
+  for (let i = 0; i < centeredData.length; i++) {
+    const projection = new Array(numComponents).fill(0);
+    for (let j = 0; j < numComponents; j++) {
+      for (let k = 0; k < centeredData[i].length; k++) {
+        projection[j] += centeredData[i][k] * eigenvectors[j][k];
+      }
+    }
+    projectedData.push(projection);
+  }
+  
+  return {
+    projectedData,
+    eigenvectors,
+    mean
+  };
+}
+
+function drawMFCCTrajectory() {
+  // Get frequency data
+  analyser.getByteFrequencyData(dataArray);
+  
+  // Detect beat for timing
+  const isBeat = detectBeatForMFCC(dataArray);
+  
+  // Only calculate MFCCs and update PCA on beat subdivisions or time intervals
+  // Initialize lastUpdateTime on first run to start immediately
+  if (window.mfccBeatDetector.lastUpdateTime === 0) {
+    window.mfccBeatDetector.lastUpdateTime = performance.now();
+  }
+  
+  if (shouldUpdateMFCC()) {
+    // Calculate MFCCs for current frame
+    const mfccs = calculateMFCC(dataArray);
+    
+    // Add to history
+    mfccHistory.unshift(mfccs);
+    if (mfccHistory.length > maxMFCCHistory) {
+      mfccHistory.pop();
+    }
+    
+    // Update PCA if we have enough data (reduced from 20 to 5 for faster initial display)
+    if (mfccHistory.length >= 5) {
+      mfccPCAModel = calculatePCA(mfccHistory, window.mfccBeatDetector.dimensions);
+      
+      // Update data range for proper scaling
+      if (mfccPCAModel && mfccPCAModel.projectedData.length > 0) {
+        const data = mfccPCAModel.projectedData;
+        const dims = window.mfccBeatDetector.dimensions;
+        mfccDataRange.min = new Array(dims).fill(Infinity);
+        mfccDataRange.max = new Array(dims).fill(-Infinity);
+        
+        for (let i = 0; i < data.length; i++) {
+          for (let j = 0; j < dims; j++) {
+            mfccDataRange.min[j] = Math.min(mfccDataRange.min[j], data[i][j]);
+            mfccDataRange.max[j] = Math.max(mfccDataRange.max[j], data[i][j]);
+          }
+        }
+        
+        // Add some padding to the range
+        for (let j = 0; j < dims; j++) {
+          const range = mfccDataRange.max[j] - mfccDataRange.min[j];
+          const padding = range * 0.1;
+          mfccDataRange.min[j] -= padding;
+          mfccDataRange.max[j] += padding;
+        }
+      }
+      
+      // Add new point to history
+      if (mfccPCAModel && mfccPCAModel.projectedData.length > 0) {
+        const currentPoint = mfccPCAModel.projectedData[0];
+        const dims = window.mfccBeatDetector.dimensions;
+        const normalizedPoint = [];
+        
+        for (let j = 0; j < dims; j++) {
+          normalizedPoint[j] = (currentPoint[j] - mfccDataRange.min[j]) / (mfccDataRange.max[j] - mfccDataRange.min[j]) * 2 - 1;
+        }
+        
+        // Pad with zeros for missing dimensions
+        while (normalizedPoint.length < 3) {
+          normalizedPoint.push(0);
+        }
+        
+        mfccCurrentPoint = {
+          x: normalizedPoint[0],
+          y: normalizedPoint[1],
+          z: normalizedPoint[2],
+          timestamp: performance.now(),
+          isBeat: isBeat,
+          alpha: 1.0,
+          rawData: normalizedPoint.slice(0, dims) // Store original dimension data
+        };
+        
+        mfccPointHistory.unshift(mfccCurrentPoint);
+        
+        // Limit number of points
+        if (mfccPointHistory.length > window.mfccBeatDetector.maxPoints) {
+          mfccPointHistory.pop();
+        }
+      }
+    }
+    
+    window.mfccBeatDetector.lastUpdateTime = performance.now();
+  }
+  
+  // Need at least some data to draw
+  if (mfccHistory.length < 5) {
+    applyAfterglowEffect();
+    drawGrid("mfcc");
+    return;
+  }
+  
+  applyAfterglowEffect();
+  drawGrid("mfcc");
+  
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  
+  const width = canvas.width;
+  const height = canvas.height;
+  const maxDimension = Math.min(width, height);
+  const scale = maxDimension * 0.4;
+  const now = performance.now();
+  
+  // Update point alphas and remove old points
+  mfccPointHistory = mfccPointHistory.filter(point => {
+    const age = now - point.timestamp;
+    point.alpha = Math.max(0, 1 - (age / window.mfccBeatDetector.pointLifetime));
+    return point.alpha > 0.01; // Remove points that are almost invisible
+  });
+  
+  // Choose visualization mode based on dimensions and settings
+  const mode = window.mfccBeatDetector.visualizationMode;
+  const dims = window.mfccBeatDetector.dimensions;
+  
+  switch (mode) {
+    case 'radial':
+      drawRadialVisualization(mfccPointHistory, scale*2, width, height, dims);
+      break;
+    case 'wave':
+      drawWaveVisualization(mfccPointHistory, scale, width, height, dims);
+      break;
+    case 'spiral':
+      drawSpiralVisualization(mfccPointHistory, scale*3, width, height, dims);
+      break;
+    case 'filter':
+      drawFilterVisualization(mfccPointHistory, scale, width, height, dims);
+      break;
+    case 'points':
+    default:
+      drawPointsVisualization(mfccPointHistory, scale, width, height, dims);
+      break;
+  }
+  
+  // Draw beat indicator
+  if (isBeat) {
+    ctx.strokeStyle = theme.glow;
+    ctx.lineWidth = 3;
+    //ctx.beginPath();
+    //ctx.arc(0, 0, scale * 0.8, 0, Math.PI * 2);
+    //ctx.stroke();
+  }
+  
+  // Draw info
+  ctx.fillStyle = theme.label;
+  ctx.font = "10px monospace";
+  ctx.fillText(`Beat: ${Math.round(60000/window.mfccBeatDetector.beatInterval)} BPM`, -width/2 + 10, -height/2 + 30);
+  ctx.fillText(`Subdivision: ${window.mfccBeatDetector.subdivision}`, -width/2 + 10, -height/2 + 45);
+  ctx.fillText(`Points: ${mfccPointHistory.length}`, -width/2 + 10, -height/2 + 60);
+  ctx.fillText(`Mode: ${window.mfccBeatDetector.visualizationMode}`, -width/2 + 10, -height/2 + 75);
+  ctx.fillText(`Dims: ${window.mfccBeatDetector.dimensions}D`, -width/2 + 10, -height/2 + 90);
+  
+  ctx.restore();
+  drawGrain();
+  applyAudioReactiveFilter();
+}
+
+// 1D Radial Visualization - PC1 controls radius, creates pulsing circles
+function drawRadialVisualization(points, scale, width, height, dims) {
+  const now = performance.now();
+  
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
+    const age = now - point.timestamp;
+    const isNewPoint = age < 200;
+    
+    ctx.globalAlpha = point.alpha;
+    
+    // Use PC1 for radius (scaled to 0-1 range)
+    const radius = (point.rawData[0] + 1) * 0.5 * scale * 0.3;
+    
+    // Use PC2 for color hue if available
+    const hue = dims > 1 ? (point.rawData[1] + 1) * 0.5 * 360 : 0;
+    
+    ctx.strokeStyle = dims > 1 ? `hsl(${hue}, 100%, 60%)` : theme.glow;
+    ctx.lineWidth = isNewPoint ? 4 : 2;
+    ctx.shadowBlur = isNewPoint ? 15 : 8;
+    ctx.shadowColor = ctx.strokeStyle;
+    
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+// 2D Wave Visualization - PC1 controls amplitude, PC2 controls frequency
+function drawWaveVisualization(points, scale, width, height, dims) {
+  const now = performance.now();
+  
+  ctx.strokeStyle = theme.glow;
+  ctx.lineWidth = 2;
+  ctx.shadowBlur = theme.cartoon ? 0 : 8;
+  ctx.shadowColor = theme.glow;
+  
+  ctx.beginPath();
+  
+  for (let x = -width/2; x < width/2; x += 4) {
+    let y = 0;
+    
+    // Sum contributions from all points
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      const age = now - point.timestamp;
+      
+      if (point.alpha > 0.1) {
+        // PC1 controls amplitude, PC2 controls frequency
+        const amplitude = dims > 0 ? point.rawData[0] * scale * 0.2 : 0;
+        const frequency = dims > 1 ? (point.rawData[1] + 1) * 0.5 * 4 + 1 : 2;
+        const phase = age * 0.001; // Time-based phase
+        
+        y += amplitude * Math.sin(frequency * x * 0.01 + phase) * point.alpha;
+      }
+    }
+    
+    if (x === -width/2) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+  
+  ctx.stroke();
+}
+
+// 3D Spiral Visualization - All dimensions create a 3D spiral
+function drawSpiralVisualization(points, scale, width, height, dims) {
+  const now = performance.now();
+  
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
+    const age = now - point.timestamp;
+    const isNewPoint = age < 200;
+    
+    ctx.globalAlpha = point.alpha;
+    
+    // Create spiral based on dimensions
+    const t = age * 0.001; // Time parameter
+    const radius = dims > 0 ? (point.rawData[0] + 1) * 0.5 * scale * 0.2 : scale * 0.1;
+    const heightOffset = dims > 1 ? point.rawData[1] * scale * 0.3 : 0;
+    const twist = dims > 2 ? point.rawData[2] * 2 : 0;
+    
+    const x = radius * Math.cos(t + twist);
+    const y = heightOffset + radius * Math.sin(t + twist);
+    const z = t * scale * 0.1;
+    
+    // Perspective projection
+    const perspective = 800;
+    const scale2d = perspective / (perspective + z);
+    const x2d = x * scale2d;
+    const y2d = y * scale2d;
+    
+    if (Math.abs(x2d) < width/2 && Math.abs(y2d) < height/2) {
+      const pointSize = isNewPoint ? window.mfccBeatDetector.pointSize : window.mfccBeatDetector.pointSize;
+      
+      ctx.fillStyle = theme.glow;
+      ctx.shadowBlur = isNewPoint ? 15 : 8;
+      ctx.shadowColor = theme.glow;
+      
+      ctx.beginPath();
+      ctx.arc(x2d, y2d, pointSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+// Filter Visualization - PC1 controls filter parameters
+function drawFilterVisualization(points, scale, width, height, dims) {
+  const now = performance.now();
+  
+  // Apply filter effect based on current PC1 value
+  if (points.length > 0) {
+    const currentPoint = points[0];
+    const filterValue = currentPoint.rawData[0]; // PC1 controls filter
+    
+    // Apply chromatic aberration based on PC1
+    const offset = Math.abs(filterValue) * 10;
+    if (offset > 1) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.6;
+      
+      // Red channel
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(-offset, 0, width, height);
+      
+      // Blue channel
+      ctx.fillStyle = '#0000ff';
+      ctx.fillRect(offset, 0, width, height);
+      
+      ctx.restore();
+    }
+  }
+  
+  // Draw filter visualization bars
+  const barCount = 20;
+  const barWidth = width / barCount;
+  
+  for (let i = 0; i < barCount; i++) {
+    let height = 0;
+    
+    // Sum contributions from recent points
+    for (let j = 0; j < Math.min(points.length, 10); j++) {
+      const point = points[j];
+      const age = now - point.timestamp;
+      
+      if (point.alpha > 0.1) {
+        const freq = i / barCount;
+        const amplitude = dims > 0 ? point.rawData[0] * 100 : 50;
+        const phase = age * 0.001;
+        
+        height += amplitude * Math.sin(freq * Math.PI * 2 + phase) * point.alpha;
+      }
+    }
+    
+    const x = -width/2 + i * barWidth;
+    const y = Math.max(0, height);
+    
+    ctx.fillStyle = theme.glow;
+    ctx.fillRect(x, -y, barWidth - 2, y);
+  }
+}
+
+// Original points visualization
+function drawPointsVisualization(points, scale, width, height, dims) {
+  const now = performance.now();
+  
+  // Draw connecting lines if enabled
+  if (window.mfccBeatDetector.showTrail && points.length > 1) {
+    ctx.strokeStyle = theme.glow;
+    ctx.lineWidth = lineWidth * 0.5;
+    ctx.shadowBlur = theme.cartoon ? 0 : 5;
+    ctx.shadowColor = theme.glow;
+    
+    ctx.beginPath();
+    let hasMovedToFirst = false;
+    
+    for (let i = 0; i < points.length; i++) {
+      const point = points[i];
+      const x = point.x * scale;
+      const y = point.y * scale;
+      const z = point.z * scale;
+      
+      // Simple perspective projection
+      const perspective = 800;
+      const scale2d = perspective / (perspective + z);
+      const x2d = x * scale2d;
+      const y2d = y * scale2d;
+      
+      // Check if point is within viewport bounds
+      if (Math.abs(x2d) < width/2 && Math.abs(y2d) < height/2) {
+        if (!hasMovedToFirst) {
+          ctx.moveTo(x2d, y2d);
+          hasMovedToFirst = true;
+        } else {
+          ctx.lineTo(x2d, y2d);
+        }
+      }
+    }
+    ctx.stroke();
+  }
+  
+  // Draw individual points
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
+    const x = point.x * scale;
+    const y = point.y * scale;
+    const z = point.z * scale;
+    
+    // Simple perspective projection
+    const perspective = 800;
+    const scale2d = perspective / (perspective + z);
+    const x2d = x * scale2d;
+    const y2d = y * scale2d;
+    
+    // Only draw if within viewport
+    if (Math.abs(x2d) < width/2 && Math.abs(y2d) < height/2) {
+      // Determine point size and color based on age and beat
+      const age = now - point.timestamp;
+      const isNewPoint = age < 200; // Points are "new" for 200ms
+      const pointSize = isNewPoint ? window.mfccBeatDetector.pointGlowSize : window.mfccBeatDetector.pointSize;
+      
+      // Set alpha based on point age
+      ctx.globalAlpha = point.alpha;
+      
+      // Draw glow for new points
+      if (isNewPoint) {
+        ctx.fillStyle = theme.glow;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = theme.glow;
+        ctx.beginPath();
+        ctx.arc(x2d, y2d, pointSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Draw main point
+      ctx.fillStyle = theme.glow;
+      ctx.shadowBlur = theme.cartoon ? 0 : 8;
+      ctx.shadowColor = theme.glow;
+      ctx.beginPath();
+      ctx.arc(x2d, y2d, window.mfccBeatDetector.pointSize, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Reset alpha
+      ctx.globalAlpha = 1.0;
+    }
+  }
 }
