@@ -218,9 +218,14 @@
           <span id="olympicRingsRotationSpeedValue">0</span>
         </label>
         <label>
-          Ring Spacing:
-          <input type="range" id="olympicRingsSpacing" min="0" max="50" step="2" value="20">
-          <span id="olympicRingsSpacingValue">20</span>
+          X-Axis Spacing:
+          <input type="range" id="olympicRingsSpacingX" min="0" max="100" step="2" value="20">
+          <span id="olympicRingsSpacingXValue">20</span>
+        </label>
+        <label>
+          Y-Axis Spacing:
+          <input type="range" id="olympicRingsSpacingY" min="0" max="100" step="2" value="60">
+          <span id="olympicRingsSpacingYValue">60</span>
         </label>
         <label>
           Layout Scale:
@@ -833,10 +838,19 @@
         copyBtn.className = "retro-btn";
         themeSelect.parentElement.after(copyBtn);
         copyBtn.addEventListener("click", () => {
-          updateURL();
-          navigator.clipboard.writeText(window.location.href);
-          copyBtn.textContent = "Copied!";
-          setTimeout(() => copyBtn.textContent = "Copy Settings URL", 1500);
+          // Use the comprehensive serializeSettingsToURL function from main.js if available
+          // Otherwise fall back to the local updateURL function
+          if (typeof window.serializeSettingsToURL === 'function') {
+            window.serializeSettingsToURL();
+          } else {
+            updateURL();
+          }
+          // Small delay to ensure URL is updated before copying
+          setTimeout(() => {
+            navigator.clipboard.writeText(window.location.href);
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => copyBtn.textContent = "Copy Settings URL", 1500);
+          }, 100);
         });
 
         // Load settings from URL (extras)

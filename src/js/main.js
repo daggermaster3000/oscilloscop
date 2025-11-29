@@ -995,8 +995,10 @@ if (olympicRingsRotationSpeedInput) {
 }
 
 // Additional Olympic Rings controls
-const olympicRingsSpacingInput = document.getElementById('olympicRingsSpacing');
-const olympicRingsSpacingValue = document.getElementById('olympicRingsSpacingValue');
+const olympicRingsSpacingXInput = document.getElementById('olympicRingsSpacingX');
+const olympicRingsSpacingXValue = document.getElementById('olympicRingsSpacingXValue');
+const olympicRingsSpacingYInput = document.getElementById('olympicRingsSpacingY');
+const olympicRingsSpacingYValue = document.getElementById('olympicRingsSpacingYValue');
 const olympicRingsLayoutScaleInput = document.getElementById('olympicRingsLayoutScale');
 const olympicRingsLayoutScaleValue = document.getElementById('olympicRingsLayoutScaleValue');
 const olympicRingsHorizontalOffsetInput = document.getElementById('olympicRingsHorizontalOffset');
@@ -1060,7 +1062,8 @@ function bindOlympicRingsCheckbox(input, settingKey) {
 }
 
 // Bind all new controls
-bindOlympicRingsSlider(olympicRingsSpacingInput, olympicRingsSpacingValue, 'ringSpacing', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsSpacingXInput, olympicRingsSpacingXValue, 'ringSpacingX', (v) => v.toString());
+bindOlympicRingsSlider(olympicRingsSpacingYInput, olympicRingsSpacingYValue, 'ringSpacingY', (v) => v.toString());
 bindOlympicRingsSlider(olympicRingsLayoutScaleInput, olympicRingsLayoutScaleValue, 'layoutScale');
 bindOlympicRingsSlider(olympicRingsHorizontalOffsetInput, olympicRingsHorizontalOffsetValue, 'horizontalOffset', (v) => v.toString());
 bindOlympicRingsSlider(olympicRingsVerticalOffsetInput, olympicRingsVerticalOffsetValue, 'verticalOffset', (v) => v.toString());
@@ -1619,7 +1622,8 @@ function serializeSettingsToURL() {
   if (olympicRingsThicknessInput) params.set('olympicRingsThickness', olympicRingsThicknessInput.value);
   if (olympicRingsResponseSpeedInput) params.set('olympicRingsResponseSpeed', olympicRingsResponseSpeedInput.value);
   if (olympicRingsRotationSpeedInput) params.set('olympicRingsRotationSpeed', olympicRingsRotationSpeedInput.value);
-  if (olympicRingsSpacingInput) params.set('olympicRingsSpacing', olympicRingsSpacingInput.value);
+  if (olympicRingsSpacingXInput) params.set('olympicRingsSpacingX', olympicRingsSpacingXInput.value);
+  if (olympicRingsSpacingYInput) params.set('olympicRingsSpacingY', olympicRingsSpacingYInput.value);
   if (olympicRingsLayoutScaleInput) params.set('olympicRingsLayoutScale', olympicRingsLayoutScaleInput.value);
   if (olympicRingsHorizontalOffsetInput) params.set('olympicRingsHorizontalOffset', olympicRingsHorizontalOffsetInput.value);
   if (olympicRingsVerticalOffsetInput) params.set('olympicRingsVerticalOffset', olympicRingsVerticalOffsetInput.value);
@@ -1655,6 +1659,9 @@ function serializeSettingsToURL() {
   const newURL = window.location.pathname + '?' + params.toString();
   window.history.replaceState({}, '', newURL);
 }
+
+// Make function globally accessible for copy button
+window.serializeSettingsToURL = serializeSettingsToURL;
 
 // Deserialize URL parameters and apply to settings
 function deserializeSettingsFromURL() {
@@ -2051,9 +2058,27 @@ function deserializeSettingsFromURL() {
     olympicRingsRotationSpeedInput.dispatchEvent(new Event('input'));
     hasParams = true;
   }
-  if (params.has('olympicRingsSpacing') && olympicRingsSpacingInput) {
-    olympicRingsSpacingInput.value = params.get('olympicRingsSpacing');
-    olympicRingsSpacingInput.dispatchEvent(new Event('input'));
+  if (params.has('olympicRingsSpacingX') && olympicRingsSpacingXInput) {
+    olympicRingsSpacingXInput.value = params.get('olympicRingsSpacingX');
+    olympicRingsSpacingXInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  if (params.has('olympicRingsSpacingY') && olympicRingsSpacingYInput) {
+    olympicRingsSpacingYInput.value = params.get('olympicRingsSpacingY');
+    olympicRingsSpacingYInput.dispatchEvent(new Event('input'));
+    hasParams = true;
+  }
+  // Backward compatibility: if old 'olympicRingsSpacing' parameter exists, use it for both X and Y
+  if (params.has('olympicRingsSpacing') && !params.has('olympicRingsSpacingX') && !params.has('olympicRingsSpacingY')) {
+    const oldSpacing = params.get('olympicRingsSpacing');
+    if (olympicRingsSpacingXInput) {
+      olympicRingsSpacingXInput.value = oldSpacing;
+      olympicRingsSpacingXInput.dispatchEvent(new Event('input'));
+    }
+    if (olympicRingsSpacingYInput) {
+      olympicRingsSpacingYInput.value = oldSpacing;
+      olympicRingsSpacingYInput.dispatchEvent(new Event('input'));
+    }
     hasParams = true;
   }
   if (params.has('olympicRingsLayoutScale') && olympicRingsLayoutScaleInput) {

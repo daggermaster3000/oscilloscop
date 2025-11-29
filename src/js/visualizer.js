@@ -1229,7 +1229,8 @@ window.olympicRingsSettings = {
   beatSource: 'frequency', // 'frequency' or 'channel' - where to detect beats from
   ringSize: 120,
   ringThickness: 12,
-  ringSpacing: 20,
+  ringSpacingX: 20,
+  ringSpacingY: 60,
   responseSpeed: 0.3,
   rotationSpeed: 0.0,
   // Size and scaling parameters
@@ -1449,7 +1450,8 @@ function drawOlympicRings() {
   
   const size = window.olympicRingsSettings.ringSize * window.olympicRingsSettings.layoutScale;
   const thickness = window.olympicRingsSettings.ringThickness;
-  const spacing = window.olympicRingsSettings.ringSpacing;
+  const spacingX = window.olympicRingsSettings.ringSpacingX || 20;
+  const spacingY = window.olympicRingsSettings.ringSpacingY || 60;
   
   // Rotation animation
   const rotation = performance.now() * 0.001 * window.olympicRingsSettings.rotationSpeed;
@@ -1460,11 +1462,11 @@ function drawOlympicRings() {
   // Bottom row: rings 4, 5 (green, red) - offset
   
   const rings = [
-    { x: -size - spacing, y: -size/2, color: window.olympicRingsSettings.ringColors[0] }, // Ring 1 (top left)
-    { x: 0, y: -size/2, color: window.olympicRingsSettings.ringColors[2] }, // Ring 2 (top center)
-    { x: size + spacing, y: -size/2, color: window.olympicRingsSettings.ringColors[4] }, // Ring 3 (top right)
-    { x: -(size + spacing)/2, y: size/2, color: window.olympicRingsSettings.ringColors[1] }, // Ring 4 (bottom left)
-    { x: (size + spacing)/2, y: size/2, color: window.olympicRingsSettings.ringColors[3] } // Ring 5 (bottom right)
+    { x: -size - spacingX, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[0] }, // Ring 1 (top left)
+    { x: 0, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[2] }, // Ring 2 (top center)
+    { x: size + spacingX, y: -spacingY/2, color: window.olympicRingsSettings.ringColors[4] }, // Ring 3 (top right)
+    { x: -(size + spacingX)/2, y: spacingY/2, color: window.olympicRingsSettings.ringColors[1] }, // Ring 4 (bottom left)
+    { x: (size + spacingX)/2, y: spacingY/2, color: window.olympicRingsSettings.ringColors[3] } // Ring 5 (bottom right)
   ];
   
   // Draw rings
